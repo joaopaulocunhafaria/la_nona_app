@@ -22,6 +22,11 @@ migrate_working_dir/
 *.iws
 .idea/
 
+# Cache de build do Flutter/Dart que ficou na raiz antes da migração para
+# app/ (app/.gitignore cobre o caminho correto, dentro de app/, daqui pra frente)
+/.dart_tool/
+/.flutter-plugins-dependencies
+
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
