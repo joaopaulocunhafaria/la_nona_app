@@ -12,11 +12,14 @@ import com.lanona.api.repository.ChatThreadRepository;
 import com.lanona.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,8 +66,19 @@ public class ChatService {
     public Page<ChatMessageResponse> getMessages(
             UUID threadUserId, UUID requesterId, boolean requesterIsAdmin, Pageable pageable) {
         assertAccess(threadUserId, requesterId, requesterIsAdmin);
-        return chatMessageRepository.findByThreadUserIdOrderBySentAtDesc(threadUserId, pageable)
+
+        // A consulta traz do mais recente para o mais antigo para que a primeira
+        // pagina contenha sempre as ultimas mensagens. Invertendo o conteudo da
+        // pagina, entregamos em ordem cronologica (antiga -> recente), de modo que
+        // o chat renderize a mensagem mais nova na parte inferior.
+        Page<ChatMessageResponse> recentesPrimeiro = chatMessageRepository
+                .findByThreadUserIdOrderBySentAtDesc(threadUserId, pageable)
                 .map(ChatMessageResponse::from);
+
+        List<ChatMessageResponse> cronologicas = new ArrayList<>(recentesPrimeiro.getContent());
+        Collections.reverse(cronologicas);
+
+        return new PageImpl<>(cronologicas, pageable, recentesPrimeiro.getTotalElements());
     }
 
     @Transactional

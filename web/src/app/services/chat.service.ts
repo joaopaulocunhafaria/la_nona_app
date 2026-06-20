@@ -105,7 +105,10 @@ export class ChatService {
 
 	getMessages(userId: string, page = 0, size = 50): Observable<ChatMessagePage> {
 		return this.http.get<ChatMessagePage>(`${this.baseUrl}/threads/${userId}/messages`, {
-			params: { page, size, sort: 'sentAt,asc' },
+			// O backend ja entrega a pagina em ordem cronologica (mais antiga ->
+			// mais recente); nao enviamos sort para nao conflitar com esse
+			// ordenamento aplicado no servidor.
+			params: { page, size },
 		});
 	}
 
