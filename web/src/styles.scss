@@ -1,0 +1,60 @@
+@use 'primeicons/primeicons.css';
+@use 'tailwindcss';
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Dancing+Script:wght@600;700&display=swap');
+
+:root {
+	--primary-dark: #1e3a1f;
+	--primary-base: #254d27;
+	--primary-light: #3b6b3e;
+
+	--secondary-dark: #163017;
+	--secondary-base: #2f5d33;
+	--secondary-light: #5c8f61;
+
+	--background-main: #f5f6f2;
+	--background-soft: #e9efe6;
+
+	--surface-light: #ffffff;
+	--surface-soft-green: #eef4ec;
+
+	--accent-cream: #f2efe6;
+	--accent-gold-soft: #d4b97a;
+
+	--text-primary: #0f1f10;
+	--text-secondary: #4b5a4c;
+	--text-on-dark: #f5f6f2;
+
+	--primary-font: 'Poppins', sans-serif;
+	--brand-font: 'Dancing Script', cursive;
+}
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+	overflow-x: hidden;
+	font-family: var(--primary-font);
+	background-color: var(--background-main);
+	color: var(--text-primary);
+}
+
+// Inputs/selects/textareas dentro de um flex container mantem, por padrao, min-width:auto
+// (a largura minima do conteudo), ignorando flex-1/flex-shrink e empurrando irmaos (ex.: o
+// botao de enviar do chat) para fora da tela em telas estreitas. Isso forca o min-width: 0.
+input,
+select,
+textarea {
+	min-width: 0;
+}
+
+.brand-title {
+	font-family: var(--brand-font);
+	color: var(--text-on-dark);
+}
+
+@media screen and (max-width: 600px) {
+	.p-toast {
+		padding: 0 1rem;
+	}
+}

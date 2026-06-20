@@ -1,0 +1,64 @@
+<p-dialog
+	header="Endereço de Entrega"
+	[(visible)]="visible"
+	[modal]="true"
+	[closable]="!isFirstAccess"
+	[dismissableMask]="false"
+	[closeOnEscape]="!isFirstAccess"
+	[style]="{ width: 'min(32rem, 92vw)' }"
+	(visibleChange)="visibleChange.emit($event)"
+>
+	<form [formGroup]="form" class="flex flex-col gap-4">
+		<div class="flex items-end gap-2">
+			<div class="flex flex-1 flex-col gap-1">
+				<label class="text-sm font-medium" style="color: var(--text-secondary)">CEP</label>
+				<input pInputText formControlName="cep" placeholder="00000-000" class="w-full" />
+			</div>
+			<button pButton type="button" icon="pi pi-search" [loading]="buscandoCep()" severity="secondary" (click)="buscarCep()"></button>
+		</div>
+
+		<div class="flex flex-col gap-1">
+			<label class="text-sm font-medium" style="color: var(--text-secondary)">Rua</label>
+			<input pInputText formControlName="rua" placeholder="Nome da rua" class="w-full" />
+		</div>
+
+		<div class="flex flex-col gap-4 sm:flex-row">
+			<div class="flex flex-1 flex-col gap-1">
+				<label class="text-sm font-medium" style="color: var(--text-secondary)">Bairro</label>
+				<input pInputText formControlName="bairro" placeholder="Bairro" class="w-full" />
+			</div>
+			<div class="flex w-full flex-col gap-1 sm:w-28">
+				<label class="text-sm font-medium" style="color: var(--text-secondary)">Número</label>
+				<input pInputText formControlName="numero" placeholder="Nº" class="w-full" />
+			</div>
+		</div>
+
+		<div class="flex flex-col gap-4 sm:flex-row">
+			<div class="flex flex-1 flex-col gap-1">
+				<label class="text-sm font-medium" style="color: var(--text-secondary)">Cidade</label>
+				<input pInputText formControlName="cidade" placeholder="Cidade" class="w-full" />
+			</div>
+			<div class="flex w-full flex-col gap-1 sm:w-24">
+				<label class="text-sm font-medium" style="color: var(--text-secondary)">UF</label>
+				<select formControlName="estado" class="w-full rounded-md border border-gray-300 px-2 py-2">
+					<option value="" disabled>UF</option>
+					@for (uf of ufs; track uf) {
+						<option [value]="uf">{{ uf }}</option>
+					}
+				</select>
+			</div>
+		</div>
+
+		<div class="flex flex-col gap-1">
+			<label class="text-sm font-medium" style="color: var(--text-secondary)">Complemento (opcional)</label>
+			<input pInputText formControlName="complemento" placeholder="Apto, bloco, ponto de referência..." class="w-full" />
+		</div>
+	</form>
+
+	<ng-template pTemplate="footer">
+		@if (!isFirstAccess) {
+			<button pButton type="button" label="Cancelar" severity="secondary" [text]="true" (click)="cancelar()"></button>
+		}
+		<button pButton type="button" label="Salvar Endereço" [loading]="salvando()" (click)="salvar()"></button>
+	</ng-template>
+</p-dialog>

@@ -1,0 +1,136 @@
+import { Component, OnInit, signal } from '@angular/core';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { NotificacoesService } from '../../../services/notificacoes.service';
+import { CATEGORIAS_MENU } from '../../../utils/_constantes/constantes';
+import { MenuItemImage, MenuItemImageRequest } from '../_modelos/menu-item.model';
+import { MenuItemService } from '../_services/menu-item.service';
+
+interface NovaImagem {
+	arquivo: File;
+	previewUrl: string;
+}
+
+@Component({
+	selector: 'app-menu-form',
+	standalone: false,
+	templateUrl: './menu-form.component.html',
+	styleUrl: './menu-form.component.scss',
+})
+export class MenuFormComponent implements OnInit {
+	readonly categorias = CATEGORIAS_MENU;
+	readonly carregando = signal(false);
+	readonly salvando = signal(false);
+	readonly imagensExistentes = signal<MenuItemImage[]>([]);
+	readonly novasImagens = signal<NovaImagem[]>([]);
+
+	itemId: string | null = null;
+
+	readonly form = new FormGroup({
+		name: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+		description: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+		price: new FormControl<number | null>(null, { validators: [Validators.required, Validators.min(0.01)] }),
+		category: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+		available: new FormControl<boolean>(true, { nonNullable: true }),
+	});
+
+	get titulo(): string {
+		return this.itemId ? 'Editar Item' : 'Adicionar Item';
+	}
+
+	constructor(
+		private readonly route: ActivatedRoute,
+		private readonly router: Router,
+		private readonly menuItemService: MenuItemService,
+		private readonly notificacoesService: NotificacoesService,
+	) {}
+
+	ngOnInit(): void {
+		this.itemId = this.route.snapshot.paramMap.get('id');
+		if (this.itemId) {
+			this.carregando.set(true);
+			this.menuItemService.buscarPorId(this.itemId).subscribe((item) => {
+				this.form.patchValue({
+					name: item.name,
+					description: item.description,
+					price: item.price,
+					category: item.category.toUpperCase(),
+					available: item.available,
+				});
+				this.imagensExistentes.set([...item.images].sort((a, b) => a.position - b.position));
+				this.carregando.set(false);
+			});
+		}
+	}
+
+	removerImagemExistente(imagem: MenuItemImage): void {
+		this.imagensExistentes.set(this.imagensExistentes().filter((i) => i.id !== imagem.id));
+	}
+
+	removerNovaImagem(novaImagem: NovaImagem): void {
+		this.novasImagens.set(this.novasImagens().filter((i) => i !== novaImagem));
+	}
+
+	aoSelecionarArquivos(event: Event): void {
+		const input = event.target as HTMLInputElement;
+		const arquivos = Array.from(input.files ?? []);
+
+		const novas = arquivos.map((arquivo) => ({ arquivo, previewUrl: URL.createObjectURL(arquivo) }));
+		this.novasImagens.set([...this.novasImagens(), ...novas]);
+		input.value = '';
+	}
+
+	salvar(): void {
+		if (this.form.invalid) {
+			this.form.markAllAsTouched();
+			return;
+		}
+
+		const totalImagens = this.imagensExistentes().length + this.novasImagens().length;
+		if (totalImagens === 0) {
+			this.notificacoesService.erro('Adicione ao menos uma imagem.');
+			return;
+		}
+
+		this.salvando.set(true);
+		this.converterImagens().then((images) => {
+			const { name, description, price, category, available } = this.form.getRawValue();
+			const request = { name, description, price: price!, category, available, images };
+
+			const requisicao$ = this.itemId ? this.menuItemService.atualizar(this.itemId, request) : this.menuItemService.criar(request);
+
+			requisicao$.subscribe({
+				next: () => {
+					this.salvando.set(false);
+					this.notificacoesService.sucesso(this.itemId ? 'Item atualizado com sucesso!' : 'Item adicionado com sucesso!');
+					this.router.navigate(['/menu']);
+				},
+				error: (erro) => {
+					this.salvando.set(false);
+					this.notificacoesService.erro(erro?.message ?? 'Não foi possível salvar o item.');
+				},
+			});
+		});
+	}
+
+	private async converterImagens(): Promise<MenuItemImageRequest[]> {
+		const existentes: MenuItemImageRequest[] = this.imagensExistentes().map((imagem) => this.parseDataUri(imagem.data));
+		const novas = await Promise.all(this.novasImagens().map((nova) => this.arquivoParaBase64(nova.arquivo)));
+		return [...existentes, ...novas];
+	}
+
+	private parseDataUri(dataUri: string): MenuItemImageRequest {
+		const [meta, base64] = dataUri.split(',');
+		const contentType = meta.replace('data:', '').replace(';base64', '');
+		return { base64, contentType };
+	}
+
+	private arquivoParaBase64(arquivo: File): Promise<MenuItemImageRequest> {
+		return new Promise((resolve, reject) => {
+			const leitor = new FileReader();
+			leitor.onload = () => resolve(this.parseDataUri(leitor.result as string));
+			leitor.onerror = reject;
+			leitor.readAsDataURL(arquivo);
+		});
+	}
+}

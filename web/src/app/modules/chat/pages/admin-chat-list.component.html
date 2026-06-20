@@ -1,0 +1,36 @@
+<app-page-header titulo="Inbox de Suporte"></app-page-header>
+
+@if (carregando()) {
+	<div class="flex justify-center py-12">
+		<p-progressSpinner></p-progressSpinner>
+	</div>
+} @else if (threads().length === 0) {
+	<div class="flex flex-col items-center gap-3 py-16" style="color: var(--text-secondary)">
+		<i class="pi pi-inbox text-5xl"></i>
+		<span>Nenhuma conversa ativa</span>
+	</div>
+} @else {
+	<div class="divide-y">
+		@for (thread of threads(); track thread.userId) {
+			<button type="button" class="flex w-full items-center gap-3 p-4 text-left" (click)="abrirConversa(thread)">
+				<p-avatar [label]="inicial(thread)" shape="circle" styleClass="!bg-[var(--surface-soft-green)]"></p-avatar>
+
+				<div class="flex min-w-0 flex-1 flex-col gap-1">
+					<div class="flex items-center justify-between gap-2">
+						<span class="truncate font-bold" style="color: var(--text-primary)">{{ thread.userName }}</span>
+						<span class="flex-shrink-0 text-xs" style="color: var(--text-secondary)">{{ horario(thread) }}</span>
+					</div>
+					<span class="truncate text-sm" [class.font-bold]="thread.adminUnreadCount > 0" style="color: var(--text-secondary)">
+						{{ thread.lastMessage || 'Sem mensagens' }}
+					</span>
+				</div>
+
+				@if (thread.adminUnreadCount > 0) {
+					<p-badge [value]="thread.adminUnreadCount > 99 ? '99+' : '' + thread.adminUnreadCount" severity="danger"></p-badge>
+				} @else {
+					<i class="pi pi-angle-right" style="color: var(--secondary-light)"></i>
+				}
+			</button>
+		}
+	</div>
+}

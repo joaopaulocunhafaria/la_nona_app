@@ -1,0 +1,58 @@
+<div class="flex min-h-screen items-center justify-center px-6" style="background-color: var(--background-main)">
+	<div class="w-full max-w-sm rounded-xl bg-white p-8 shadow-md">
+		<button type="button" class="mb-4 flex items-center gap-2 text-sm" style="color: var(--text-secondary)" (click)="voltar()">
+			<i class="pi pi-arrow-left"></i>
+			Voltar
+		</button>
+
+		<h2 class="mb-6 text-2xl font-bold" style="color: var(--text-primary)">
+			{{ modoRegistro() ? 'Criar Conta' : 'Entrar' }}
+		</h2>
+
+		<form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="submeter()">
+			@if (modoRegistro()) {
+				<div class="flex flex-col gap-1">
+					<label for="name" class="text-sm font-medium" style="color: var(--text-secondary)">Nome</label>
+					<input id="name" type="text" pInputText formControlName="name" placeholder="Seu nome" class="w-full" />
+				</div>
+			}
+
+			<div class="flex flex-col gap-1">
+				<label for="email" class="text-sm font-medium" style="color: var(--text-secondary)">Email</label>
+				<input id="email" type="email" pInputText formControlName="email" placeholder="seu.email@example.com" class="w-full" />
+				@if (form.controls.email.invalid && form.controls.email.touched) {
+					<small class="text-red-600">Informe um email válido.</small>
+				}
+			</div>
+
+			<div class="flex flex-col gap-1">
+				<label for="password" class="text-sm font-medium" style="color: var(--text-secondary)">Senha</label>
+				<p-password
+					inputId="password"
+					formControlName="password"
+					[feedback]="false"
+					[toggleMask]="true"
+					placeholder="Mínimo 8 caracteres"
+					styleClass="w-full"
+					inputStyleClass="w-full"
+				></p-password>
+				@if (form.controls.password.invalid && form.controls.password.touched) {
+					<small class="text-red-600">A senha deve ter ao menos 8 caracteres.</small>
+				}
+			</div>
+
+			<button
+				pButton
+				type="submit"
+				class="mt-2 w-full"
+				[label]="modoRegistro() ? 'Criar Conta' : 'Entrar'"
+				[loading]="carregando()"
+				[disabled]="carregando()"
+			></button>
+		</form>
+
+		<button type="button" class="mt-4 w-full text-center text-sm" style="color: var(--primary-base)" (click)="alternarModo()">
+			{{ modoRegistro() ? 'Já tem conta? Faça login' : 'Não tem conta? Crie uma' }}
+		</button>
+	</div>
+</div>

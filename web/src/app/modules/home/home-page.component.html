@@ -1,0 +1,168 @@
+<p-confirmDialog></p-confirmDialog>
+
+<div class="flex items-center gap-3 px-4 py-4 shadow" style="background-color: var(--primary-base)">
+	@if (isAuthenticated()) {
+		<button type="button" class="relative text-2xl" style="color: var(--text-on-dark)" (click)="abrirChat()">
+			<i class="pi pi-comments"></i>
+			@if (unreadCount() > 0) {
+				<p-badge [value]="unreadLabel()" severity="danger" class="absolute -top-2 -right-2"></p-badge>
+			}
+		</button>
+	} @else {
+		<span class="w-8"></span>
+	}
+
+	<h1 class="brand-title flex-1 text-center text-4xl font-bold">La Nona</h1>
+
+	@if (isAuthenticated()) {
+		<button type="button" class="text-2xl" style="color: var(--text-on-dark)" (click)="sair()" title="Sair da conta">
+			<i class="pi pi-sign-out"></i>
+		</button>
+	} @else {
+		<button type="button" class="text-2xl" style="color: var(--text-on-dark)" (click)="irParaLogin()" title="Entrar na conta">
+			<i class="pi pi-sign-in"></i>
+		</button>
+	}
+</div>
+
+<div class="mx-auto flex max-w-3xl flex-col gap-6 p-4">
+	<div class="rounded-xl p-6 shadow-md" style="background: linear-gradient(135deg, var(--primary-base), var(--primary-light))">
+		@if (isAuthenticated()) {
+			<div class="flex flex-col items-center gap-4">
+				<div class="relative cursor-pointer" (click)="selecionarFoto(fotoInput)">
+					<div
+						class="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2"
+						style="border-color: var(--text-on-dark)"
+					>
+						@if (usuario()?.photo) {
+							<img [src]="usuario()?.photo" class="h-full w-full object-cover" alt="Foto de perfil" />
+						} @else {
+							<div class="flex h-full w-full items-center justify-center" style="background-color: var(--surface-soft-green)">
+								<i class="pi pi-user text-3xl"></i>
+							</div>
+						}
+					</div>
+					@if (carregandoFoto()) {
+						<div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+							<p-progressSpinner styleClass="!h-6 !w-6" strokeWidth="4"></p-progressSpinner>
+						</div>
+					} @else {
+						<div
+							class="absolute right-0 bottom-0 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white"
+							style="background-color: var(--accent-gold-soft)"
+						>
+							<i class="pi pi-camera text-xs text-white"></i>
+						</div>
+					}
+					<input #fotoInput type="file" accept="image/*" class="hidden" (change)="aoSelecionarArquivo($event)" />
+				</div>
+
+				<span class="text-lg font-bold" style="color: var(--text-on-dark)">Bem-vindo!</span>
+
+				<div class="flex w-full flex-col gap-3">
+					<div class="flex min-w-0 items-center gap-3">
+						<i class="pi pi-user flex-shrink-0" style="color: var(--text-on-dark)"></i>
+						<div class="flex min-w-0 flex-col">
+							<span class="text-xs opacity-80" style="color: var(--text-on-dark)">Nome</span>
+							<span class="truncate text-sm font-medium" style="color: var(--text-on-dark)">{{ usuario()?.name || 'Não definido' }}</span>
+						</div>
+					</div>
+					<div class="flex min-w-0 items-center gap-3">
+						<i class="pi pi-envelope flex-shrink-0" style="color: var(--text-on-dark)"></i>
+						<div class="flex min-w-0 flex-col">
+							<span class="text-xs opacity-80" style="color: var(--text-on-dark)">Email</span>
+							<span class="truncate text-sm font-medium" style="color: var(--text-on-dark)">{{ usuario()?.email || 'Não definido' }}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		} @else {
+			<div class="flex flex-col items-center gap-4 text-center">
+				<i class="pi pi-user text-4xl" style="color: var(--text-on-dark)"></i>
+				<span class="text-lg font-bold" style="color: var(--text-on-dark)">Bem-vindo!</span>
+				<p class="text-sm" style="color: var(--text-on-dark)">
+					Explore nosso cardápio livremente. Faça login para favoritar pratos e finalizar pedidos no carrinho.
+				</p>
+				<button pButton label="Entrar ou Criar Conta" icon="pi pi-sign-in" (click)="irParaLogin()"></button>
+			</div>
+		}
+	</div>
+
+	@if (usuario()) {
+		<div class="rounded-lg p-4" style="background-color: var(--surface-soft-green); border: 1px solid var(--secondary-light)">
+			<div class="flex items-center gap-2">
+				<i class="pi pi-map-marker" style="color: var(--secondary-base)"></i>
+				<span class="flex-1 font-bold" style="color: var(--secondary-base)">Endereço do Usuário</span>
+				<button
+					type="button"
+					class="flex items-center gap-1 text-sm font-medium"
+					style="color: var(--secondary-base)"
+					(click)="abrirEnderecoModal()"
+				>
+					<i class="pi pi-pencil"></i>
+					Atualizar
+				</button>
+			</div>
+			<p class="mt-2 text-sm" style="color: var(--secondary-base)">
+				{{ enderecoFormatado() || 'Endereço ainda não cadastrado.' }}
+			</p>
+		</div>
+	}
+
+	<h2 class="text-xl font-bold" style="color: var(--text-primary)">Conteúdo Principal</h2>
+
+	<div class="flex flex-col gap-3">
+		<button type="button" class="flex items-center gap-4 rounded-lg bg-white p-4 text-left shadow" (click)="irPara('/menu')">
+			<div class="flex h-12 w-12 items-center justify-center rounded-lg" style="background-color: var(--surface-soft-green)">
+				<i class="pi pi-book text-2xl" style="color: var(--primary-base)"></i>
+			</div>
+			<div class="flex flex-col">
+				<span class="font-bold" style="color: var(--text-primary)">Cardápio</span>
+				<span class="text-xs" style="color: var(--text-secondary)">Explore nosso cardápio completo</span>
+			</div>
+			<i class="pi pi-angle-right ml-auto" style="color: var(--secondary-light)"></i>
+		</button>
+
+		<button type="button" class="flex items-center gap-4 rounded-lg bg-white p-4 text-left shadow" (click)="irPara('/cart')">
+			<div class="flex h-12 w-12 items-center justify-center rounded-lg" style="background-color: var(--surface-soft-green)">
+				<i class="pi pi-shopping-cart text-2xl" style="color: var(--primary-base)"></i>
+			</div>
+			<div class="flex flex-col">
+				<span class="font-bold" style="color: var(--text-primary)">Meu Carrinho</span>
+				<span class="text-xs" style="color: var(--text-secondary)">Veja e finalize seu pedido</span>
+			</div>
+			<i class="pi pi-angle-right ml-auto" style="color: var(--secondary-light)"></i>
+		</button>
+
+		<button type="button" class="flex items-center gap-4 rounded-lg bg-white p-4 text-left shadow" (click)="irPara('/favorites')">
+			<div class="flex h-12 w-12 items-center justify-center rounded-lg" style="background-color: var(--surface-soft-green)">
+				<i class="pi pi-heart text-2xl" style="color: var(--primary-base)"></i>
+			</div>
+			<div class="flex flex-col">
+				<span class="font-bold" style="color: var(--text-primary)">Favoritos</span>
+				<span class="text-xs" style="color: var(--text-secondary)">Seus pratos favoritos</span>
+			</div>
+			<i class="pi pi-angle-right ml-auto" style="color: var(--secondary-light)"></i>
+		</button>
+
+		@if (isAdmin()) {
+			<button type="button" class="flex items-center gap-4 rounded-lg bg-white p-4 text-left shadow" (click)="irPara('/admin/users')">
+				<div class="flex h-12 w-12 items-center justify-center rounded-lg" style="background-color: var(--surface-soft-green)">
+					<i class="pi pi-users text-2xl" style="color: var(--primary-base)"></i>
+				</div>
+				<div class="flex flex-col">
+					<span class="font-bold" style="color: var(--text-primary)">Gestão de Usuários</span>
+					<span class="text-xs" style="color: var(--text-secondary)">Gerenciar permissões e dados dos usuários</span>
+				</div>
+				<i class="pi pi-angle-right ml-auto" style="color: var(--secondary-light)"></i>
+			</button>
+		}
+	</div>
+</div>
+
+<app-address-modal
+	[(visible)]="modalEnderecoVisivel"
+	[isFirstAccess]="isFirstAccess()"
+	[enderecoInicial]="usuario()?.address ?? null"
+	(salvo)="aoSalvarEndereco($event)"
+></app-address-modal>

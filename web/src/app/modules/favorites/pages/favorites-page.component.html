@@ -1,0 +1,41 @@
+<app-page-header titulo="Meus Favoritos"></app-page-header>
+
+@if (carregando()) {
+	<div class="flex justify-center py-12">
+		<p-progressSpinner></p-progressSpinner>
+	</div>
+} @else if (favoritos().length === 0) {
+	<div class="flex flex-col items-center gap-3 py-16" style="color: var(--text-secondary)">
+		<i class="pi pi-heart text-5xl"></i>
+		<span>Você ainda não tem favoritos</span>
+	</div>
+} @else {
+	<div class="grid grid-cols-2 gap-4 p-4 md:grid-cols-3 lg:grid-cols-4">
+		@for (item of favoritos(); track item.id) {
+			<div class="relative flex cursor-pointer flex-col rounded-xl bg-white shadow" (click)="abrirDetalhe(item)">
+				<div class="relative h-32 w-full overflow-hidden rounded-t-xl" style="background-color: var(--surface-soft-green)">
+					@if (primeiraImagem(item)) {
+						<img [src]="primeiraImagem(item)" class="h-full w-full object-cover" [alt]="item.name" />
+					} @else {
+						<div class="flex h-full w-full items-center justify-center">
+							<i class="pi pi-image text-3xl" style="color: var(--secondary-light)"></i>
+						</div>
+					}
+
+					<button
+						type="button"
+						class="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-red-600"
+						(click)="desfavoritar(item, $event)"
+					>
+						<i class="pi pi-heart-fill"></i>
+					</button>
+				</div>
+
+				<div class="flex flex-col gap-1 p-3">
+					<span class="truncate text-sm font-semibold" style="color: var(--text-primary)">{{ item.name }}</span>
+					<span class="text-sm font-bold" style="color: var(--secondary-base)">{{ item.price | brl }}</span>
+				</div>
+			</div>
+		}
+	</div>
+}

@@ -1,0 +1,9 @@
+.chat-shell {
+	// 100vh em navegadores mobile e calculado com a barra de endereco recolhida; a pagina
+	// carrega com ela visivel, entao o conteudo fica mais alto que a tela e e preciso rolar
+	// para ver a barra de digitacao. 100dvh reflete o viewport visivel atual (inclusive
+	// quando o teclado abre), entao a barra de envio nunca sai de tela. Navegadores sem
+	// suporte a dvh simplesmente ignoram a segunda declaracao e ficam com o fallback em vh.
+	height: 100vh;
+	height: 100dvh;
+}

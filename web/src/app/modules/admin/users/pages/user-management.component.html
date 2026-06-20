@@ -1,0 +1,98 @@
+<app-page-header titulo="Gestão de Usuários"></app-page-header>
+
+<div class="p-4">
+	<input
+		type="text"
+		class="mb-4 w-full rounded-lg border px-4 py-2"
+		style="background-color: var(--surface-soft-green); border-color: var(--secondary-light)"
+		placeholder="Buscar por nome ou email..."
+		[ngModel]="termoBusca()"
+		(ngModelChange)="termoBusca.set($event)"
+	/>
+
+	@if (carregando()) {
+		<div class="flex justify-center py-12">
+			<p-progressSpinner></p-progressSpinner>
+		</div>
+	} @else if (usuariosFiltrados().length === 0) {
+		<div class="py-12 text-center" style="color: var(--text-secondary)">Nenhum usuário encontrado.</div>
+	} @else {
+		<div class="divide-y">
+			@for (usuario of usuariosFiltrados(); track usuario.id) {
+				<button type="button" class="flex w-full items-center gap-3 p-3 text-left" (click)="abrirDetalhe(usuario)">
+					<p-avatar
+						[image]="usuario.photo ?? undefined"
+						[label]="!usuario.photo ? usuario.name.charAt(0) : undefined"
+						shape="circle"
+					></p-avatar>
+
+					<div class="flex min-w-0 flex-1 flex-col gap-1">
+						<span class="truncate font-bold" style="color: var(--text-primary)">{{ usuario.name }}</span>
+						<span class="truncate text-sm" style="color: var(--text-secondary)">{{ usuario.email }}</span>
+						<p-tag [value]="usuario.role" [severity]="corDaRole(usuario.role)" styleClass="w-fit"></p-tag>
+					</div>
+
+					<i class="pi pi-chevron-right" style="color: var(--secondary-light)"></i>
+				</button>
+			}
+		</div>
+	}
+</div>
+
+<p-dialog header="Detalhes do Usuário" [(visible)]="modalVisivel" [modal]="true" [style]="{ width: 'min(28rem, 92vw)' }">
+	@if (usuarioSelecionado()) {
+		<div class="flex flex-col gap-4">
+			<div class="flex justify-center">
+				<p-avatar
+					[image]="usuarioSelecionado()!.photo ?? undefined"
+					[label]="!usuarioSelecionado()!.photo ? usuarioSelecionado()!.name.charAt(0) : undefined"
+					shape="circle"
+					size="xlarge"
+				></p-avatar>
+			</div>
+
+			<div class="flex flex-col gap-2">
+				<div class="flex flex-col">
+					<span class="text-xs" style="color: var(--text-secondary)">Nome</span>
+					<span class="font-semibold" style="color: var(--text-primary)">{{ usuarioSelecionado()!.name }}</span>
+				</div>
+				<div class="flex flex-col">
+					<span class="text-xs" style="color: var(--text-secondary)">Email</span>
+					<span class="font-semibold" style="color: var(--text-primary)">{{ usuarioSelecionado()!.email }}</span>
+				</div>
+				<div class="flex flex-col">
+					<span class="text-xs" style="color: var(--text-secondary)">Provedor</span>
+					<span class="font-semibold" style="color: var(--text-primary)">{{ usuarioSelecionado()!.provider }}</span>
+				</div>
+			</div>
+
+			<hr />
+
+			<div class="flex flex-col gap-1">
+				<span class="font-bold" style="color: var(--text-primary)">Endereço:</span>
+				<span [class.italic]="!enderecoFormatado(usuarioSelecionado()!)" style="color: var(--text-secondary)">
+					{{ enderecoFormatado(usuarioSelecionado()!) || 'Endereço não cadastrado' }}
+				</span>
+			</div>
+
+			<hr />
+
+			<div class="flex flex-col gap-2">
+				<span class="font-bold" style="color: var(--text-primary)">Cargo/Função:</span>
+				<p-select
+					[ngModel]="roleSelecionada()"
+					(ngModelChange)="roleSelecionada.set($event)"
+					[options]="roles"
+					optionLabel="label"
+					optionValue="value"
+					styleClass="w-full"
+				></p-select>
+			</div>
+		</div>
+	}
+
+	<ng-template pTemplate="footer">
+		<button pButton type="button" label="Cancelar" severity="secondary" [text]="true" (click)="modalVisivel.set(false)"></button>
+		<button pButton type="button" label="Salvar Alterações" [loading]="salvando()" (click)="salvar()"></button>
+	</ng-template>
+</p-dialog>

@@ -1,0 +1,116 @@
+<app-page-header [titulo]="titulo"></app-page-header>
+
+@if (carregando()) {
+	<div class="flex justify-center py-12">
+		<p-progressSpinner></p-progressSpinner>
+	</div>
+} @else {
+	<div class="mx-auto flex max-w-2xl flex-col gap-5 p-4">
+		<div class="flex flex-col gap-2">
+			<span class="text-sm font-semibold" style="color: var(--text-secondary)">Imagens</span>
+
+			<div class="flex flex-wrap gap-3">
+				@for (imagem of imagensExistentes(); track imagem.id) {
+					<div class="relative h-20 w-20 overflow-hidden rounded-lg">
+						<img [src]="imagem.data" class="h-full w-full object-cover" alt="Imagem do item" />
+						<button
+							type="button"
+							class="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs text-white"
+							(click)="removerImagemExistente(imagem)"
+						>
+							<i class="pi pi-times"></i>
+						</button>
+					</div>
+				}
+				@for (nova of novasImagens(); track nova.previewUrl) {
+					<div class="relative h-20 w-20 overflow-hidden rounded-lg">
+						<img [src]="nova.previewUrl" class="h-full w-full object-cover" alt="Nova imagem" />
+						<button
+							type="button"
+							class="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs text-white"
+							(click)="removerNovaImagem(nova)"
+						>
+							<i class="pi pi-times"></i>
+						</button>
+					</div>
+				}
+			</div>
+
+			<div class="flex gap-3">
+				<label
+					class="flex cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white"
+					style="background-color: var(--secondary-dark)"
+				>
+					<i class="pi pi-images"></i>
+					Galeria
+					<input type="file" accept="image/*" multiple class="hidden" (change)="aoSelecionarArquivos($event)" />
+				</label>
+				<label
+					class="flex cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white"
+					style="background-color: var(--secondary-dark)"
+				>
+					<i class="pi pi-camera"></i>
+					Câmera
+					<input type="file" accept="image/*" capture="environment" class="hidden" (change)="aoSelecionarArquivos($event)" />
+				</label>
+			</div>
+		</div>
+
+		<form [formGroup]="form" class="flex flex-col gap-4">
+			<div class="flex flex-col gap-1">
+				<label class="text-sm font-medium" style="color: var(--text-secondary)">Nome</label>
+				<input pInputText formControlName="name" placeholder="Ex: Hamburguer Artesanal" class="w-full" />
+			</div>
+
+			<div class="flex flex-col gap-1">
+				<label class="text-sm font-medium" style="color: var(--text-secondary)">Descrição</label>
+				<textarea
+					pTextarea
+					formControlName="description"
+					rows="3"
+					placeholder="Ex: Pão brioche, carne 180g..."
+					class="w-full"
+				></textarea>
+			</div>
+
+			<div class="flex flex-col gap-4 sm:flex-row">
+				<div class="flex flex-1 flex-col gap-1">
+					<label class="text-sm font-medium" style="color: var(--text-secondary)">Preço</label>
+					<p-inputnumber
+						formControlName="price"
+						mode="currency"
+						currency="BRL"
+						locale="pt-BR"
+						placeholder="Ex: 29,90"
+						styleClass="w-full"
+					></p-inputnumber>
+				</div>
+				<div class="flex flex-1 flex-col gap-1">
+					<label class="text-sm font-medium" style="color: var(--text-secondary)">Categoria</label>
+					<p-select
+						formControlName="category"
+						[options]="categorias"
+						optionLabel="label"
+						optionValue="value"
+						placeholder="Selecione"
+						styleClass="w-full"
+					></p-select>
+				</div>
+			</div>
+
+			<div class="flex items-center gap-3">
+				<p-toggleswitch formControlName="available"></p-toggleswitch>
+				<span style="color: var(--text-primary)">Disponível</span>
+			</div>
+
+			<button
+				pButton
+				type="button"
+				[label]="itemId ? 'Atualizar Item' : 'Adicionar Item'"
+				icon="pi pi-save"
+				[loading]="salvando()"
+				(click)="salvar()"
+			></button>
+		</form>
+	</div>
+}

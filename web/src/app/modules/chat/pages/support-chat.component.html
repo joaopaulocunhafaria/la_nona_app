@@ -1,0 +1,46 @@
+<div class="chat-shell flex flex-col">
+	<app-page-header [titulo]="userName" class="flex-shrink-0"></app-page-header>
+
+	@if (carregando()) {
+		<div class="flex flex-1 items-center justify-center">
+			<p-progressSpinner></p-progressSpinner>
+		</div>
+	} @else {
+		<div #scrollContainer class="flex-1 overflow-y-auto p-4">
+			<div class="flex flex-col gap-2">
+				@for (mensagem of mensagens(); track mensagem.id) {
+					<div class="flex" [class.justify-end]="ehMinha(mensagem)" [class.justify-start]="!ehMinha(mensagem)">
+						<div
+							class="max-w-[75%] rounded-2xl px-4 py-2 break-words"
+							[style.background-color]="ehMinha(mensagem) ? 'var(--secondary-dark)' : 'var(--surface-soft-green)'"
+							[style.color]="ehMinha(mensagem) ? 'var(--text-on-dark)' : 'var(--text-primary)'"
+						>
+							<p class="text-sm">{{ mensagem.text }}</p>
+							<span class="mt-1 block text-right text-xs opacity-70">{{ horario(mensagem) }}</span>
+						</div>
+					</div>
+				}
+			</div>
+		</div>
+	}
+
+	<div class="flex flex-shrink-0 items-center gap-2 border-t bg-white p-3">
+		<input
+			type="text"
+			class="min-w-0 flex-1 rounded-full border px-4 py-2"
+			style="border-color: var(--secondary-light)"
+			placeholder="Digite sua mensagem..."
+			[ngModel]="textoMensagem()"
+			(ngModelChange)="textoMensagem.set($event)"
+			(keyup.enter)="enviar()"
+		/>
+		<button
+			type="button"
+			class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-white"
+			style="background-color: var(--secondary-dark)"
+			(click)="enviar()"
+		>
+			<i class="pi pi-send"></i>
+		</button>
+	</div>
+</div>

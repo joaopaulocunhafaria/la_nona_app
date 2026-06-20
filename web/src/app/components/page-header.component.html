@@ -1,0 +1,14 @@
+<div class="flex items-center gap-3 px-4 py-4 shadow" style="background-color: var(--primary-base)">
+	@if (mostrarVoltar) {
+		<button
+			type="button"
+			class="-ml-2 flex h-10 w-10 flex-shrink-0 items-center justify-center text-2xl"
+			style="color: var(--text-on-dark)"
+			(click)="voltar()"
+		>
+			<i class="pi pi-arrow-left"></i>
+		</button>
+	}
+	<h1 class="flex-1 truncate text-center text-xl font-semibold" style="color: var(--text-on-dark)">{{ titulo }}</h1>
+	<ng-content></ng-content>
+</div>
