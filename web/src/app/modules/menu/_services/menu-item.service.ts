@@ -24,6 +24,10 @@ export class MenuItemService {
 		return this.http.get<MenuItem[]>(this.baseUrl, { params });
 	}
 
+	listarCategorias(): Observable<string[]> {
+		return this.http.get<string[]>(`${this.baseUrl}/categories`);
+	}
+
 	buscarPorId(id: string): Observable<MenuItem> {
 		return this.http.get<MenuItem>(`${this.baseUrl}/${id}`);
 	}

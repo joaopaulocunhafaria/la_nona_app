@@ -33,6 +33,13 @@ public class MenuItemService {
     }
 
     @Transactional(readOnly = true)
+    public List<String> listCategories() {
+        return menuItemRepository.findDistinctCategories().stream()
+                .map(MenuCategory::displayName)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public MenuItemResponse getById(UUID id) {
         return MenuItemResponse.from(findById(id));
     }

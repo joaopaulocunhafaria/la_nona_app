@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -93,6 +94,51 @@ class MenuItemIntegrationTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/menu-items/" + id))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void listCategoriesReturnsDistinctRegisteredCategories() throws Exception {
+        String adminToken = registerAndGetToken("menu-categorias@lanona.com", true);
+
+        createItem(adminToken, "X-Burguer", "hamburguer");
+        createItem(adminToken, "X-Salada", "hamburguer");
+        createItem(adminToken, "Coca-Cola", "bebida");
+
+        // apesar de dois itens de hamburguer, a categoria aparece uma unica vez;
+        // apenas as categorias efetivamente cadastradas sao retornadas.
+        mockMvc.perform(get("/api/menu-items/categories"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$", containsInAnyOrder("Hamburguer", "Bebida")));
+    }
+
+    @Test
+    void searchByNameAndCategoryFiltersResults() throws Exception {
+        String adminToken = registerAndGetToken("menu-busca@lanona.com", true);
+
+        createItem(adminToken, "Pizza Margherita", "pizza");
+        createItem(adminToken, "Pizza Calabresa", "pizza");
+        createItem(adminToken, "Suco de Laranja", "bebida");
+
+        mockMvc.perform(get("/api/menu-items").param("q", "margherita"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].name").value("Pizza Margherita"));
+
+        mockMvc.perform(get("/api/menu-items").param("category", "Pizza"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    private void createItem(String adminToken, String name, String category) throws Exception {
+        mockMvc.perform(post("/api/menu-items").contentType("application/json")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .content("""
+                                {"name":"%s","description":"teste","price":19.90,
+                                 "category":"%s","available":true,
+                                 "images":[{"base64":"Zm9v","contentType":"image/jpeg"}]}
+                                """.formatted(name, category)))
+                .andExpect(status().isCreated());
     }
 
     @Test

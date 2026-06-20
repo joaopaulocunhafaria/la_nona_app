@@ -22,4 +22,7 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, UUID> {
             @Param("category") MenuCategory category,
             @Param("available") Boolean available,
             @Param("query") String query);
+
+    @Query("SELECT DISTINCT m.category FROM MenuItem m ORDER BY m.category")
+    List<MenuCategory> findDistinctCategories();
 }

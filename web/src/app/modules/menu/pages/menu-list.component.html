@@ -31,8 +31,56 @@
 			}
 		</div>
 	} @else {
+		<div class="relative mb-4">
+			<i
+				class="pi pi-search absolute top-1/2 left-3 -translate-y-1/2"
+				style="color: var(--text-secondary)"
+			></i>
+			<input
+				type="text"
+				pInputText
+				class="w-full pl-10"
+				placeholder="Buscar no cardápio..."
+				[value]="termoBusca()"
+				(input)="atualizarBusca($any($event.target).value)"
+				aria-label="Buscar no cardápio"
+			/>
+		</div>
+
+		@if (categorias().length > 0) {
+			<div
+				class="categorias-scroll mb-4 flex gap-2 overflow-x-auto pb-1"
+				(mousedown)="iniciarArraste($event, scroller)"
+				(mousemove)="arrastar($event, scroller)"
+				(mouseup)="finalizarArraste()"
+				(mouseleave)="finalizarArraste()"
+				#scroller
+			>
+				<button
+					type="button"
+					class="flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap shadow-sm transition-colors"
+					[style.background-color]="categoriaSelecionada() === null ? 'var(--secondary-base)' : 'white'"
+					[style.color]="categoriaSelecionada() === null ? 'white' : 'var(--text-primary)'"
+					(click)="limparCategoria()"
+				>
+					Todos
+				</button>
+				@for (categoria of categorias(); track categoria) {
+					<button
+						type="button"
+						class="flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap shadow-sm transition-colors"
+						[style.background-color]="categoriaSelecionada() === categoria ? 'var(--secondary-base)' : 'white'"
+						[style.color]="categoriaSelecionada() === categoria ? 'white' : 'var(--text-primary)'"
+						(click)="selecionarCategoria(categoria)"
+					>
+						{{ categoria }}
+					</button>
+				}
+			</div>
+		}
+
 		<div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-			@for (item of itens(); track item.id) {
+			@for (item of itensFiltrados(); track item.id) {
 				<div class="relative flex cursor-pointer flex-col rounded-xl bg-white shadow" (click)="abrirDetalhe(item)">
 					<div class="relative h-32 w-full overflow-hidden rounded-t-xl" style="background-color: var(--surface-soft-green)">
 						@if (primeiraImagem(item)) {

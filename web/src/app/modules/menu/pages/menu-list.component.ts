@@ -1,4 +1,4 @@
-import { Component, OnInit, Signal, signal } from '@angular/core';
+import { Component, OnInit, Signal, computed, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ConfirmationService } from 'primeng/api';
 import { AuthPromptService } from '../../../services/auth-prompt.service';
@@ -17,8 +17,29 @@ import { MenuItemService } from '../_services/menu-item.service';
 })
 export class MenuListComponent implements OnInit {
 	readonly itens = signal<MenuItem[]>([]);
+	readonly categorias = signal<string[]>([]);
+	readonly categoriaSelecionada = signal<string | null>(null);
+	readonly termoBusca = signal('');
 	readonly carregando = signal(true);
 	readonly erro = signal(false);
+
+	/**
+	 * Aplica o filtro de categoria e, em seguida, o termo de busca por nome.
+	 * Se a busca nao retornar nenhum item, exibimos todos os itens (respeitando
+	 * a categoria selecionada) em vez de uma lista vazia.
+	 */
+	readonly itensFiltrados = computed<MenuItem[]>(() => {
+		const categoria = this.categoriaSelecionada();
+		const base = categoria ? this.itens().filter((item) => item.category === categoria) : this.itens();
+
+		const termo = this.termoBusca().trim().toLowerCase();
+		if (!termo) {
+			return base;
+		}
+
+		const encontrados = base.filter((item) => item.name.toLowerCase().includes(termo));
+		return encontrados.length > 0 ? encontrados : base;
+	});
 
 	readonly isAdmin: Signal<boolean>;
 
@@ -37,6 +58,7 @@ export class MenuListComponent implements OnInit {
 
 	ngOnInit(): void {
 		this.carregarItens();
+		this.carregarCategorias();
 		if (this.authService.isAuthenticated()) {
 			this.favoritesService.carregar().subscribe();
 		}
@@ -55,6 +77,47 @@ export class MenuListComponent implements OnInit {
 				this.carregando.set(false);
 			},
 		});
+	}
+
+	private carregarCategorias(): void {
+		this.menuItemService.listarCategorias().subscribe({
+			next: (categorias) => this.categorias.set(categorias),
+			error: () => this.categorias.set([]),
+		});
+	}
+
+	atualizarBusca(termo: string): void {
+		this.termoBusca.set(termo);
+	}
+
+	selecionarCategoria(categoria: string): void {
+		this.categoriaSelecionada.update((atual) => (atual === categoria ? null : categoria));
+	}
+
+	limparCategoria(): void {
+		this.categoriaSelecionada.set(null);
+	}
+
+	private arrastando = false;
+	private posInicialX = 0;
+	private scrollInicial = 0;
+
+	iniciarArraste(event: MouseEvent, elemento: HTMLElement): void {
+		this.arrastando = true;
+		this.posInicialX = event.pageX;
+		this.scrollInicial = elemento.scrollLeft;
+	}
+
+	arrastar(event: MouseEvent, elemento: HTMLElement): void {
+		if (!this.arrastando) {
+			return;
+		}
+		event.preventDefault();
+		elemento.scrollLeft = this.scrollInicial - (event.pageX - this.posInicialX);
+	}
+
+	finalizarArraste(): void {
+		this.arrastando = false;
 	}
 
 	isFavorito(item: MenuItem): boolean {

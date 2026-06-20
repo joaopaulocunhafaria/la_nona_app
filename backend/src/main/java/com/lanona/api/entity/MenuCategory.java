@@ -7,5 +7,14 @@ public enum MenuCategory {
     BEBIDA,
     SOBREMESA,
     ACOMPANHAMENTO,
-    OUTRO
+    OUTRO;
+
+    /**
+     * Nome de exibicao usado tanto na API quanto na coluna do banco:
+     * primeira letra maiuscula, restante minusculo (ex.: "Hamburguer").
+     */
+    public String displayName() {
+        String lower = name().toLowerCase();
+        return lower.substring(0, 1).toUpperCase() + lower.substring(1);
+    }
 }

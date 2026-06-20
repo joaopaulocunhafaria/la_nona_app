@@ -1,6 +1,5 @@
 package com.lanona.api.dto.response;
 
-import com.lanona.api.entity.MenuCategory;
 import com.lanona.api.entity.MenuItem;
 
 import java.math.BigDecimal;
@@ -32,16 +31,11 @@ public record MenuItemResponse(
                 item.getName(),
                 item.getDescription(),
                 item.getPrice(),
-                displayName(item.getCategory()),
+                item.getCategory().displayName(),
                 item.isAvailable(),
                 images,
                 item.getCreatedAt(),
                 item.getUpdatedAt()
         );
-    }
-
-    private static String displayName(MenuCategory category) {
-        String lower = category.name().toLowerCase();
-        return lower.substring(0, 1).toUpperCase() + lower.substring(1);
     }
 }

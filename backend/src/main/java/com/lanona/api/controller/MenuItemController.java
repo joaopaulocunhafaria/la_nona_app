@@ -36,6 +36,11 @@ public class MenuItemController {
         return menuItemService.search(category, available, q);
     }
 
+    @GetMapping("/categories")
+    public List<String> categories() {
+        return menuItemService.listCategories();
+    }
+
     @GetMapping("/{id}")
     public MenuItemResponse getOne(@PathVariable UUID id) {
         return menuItemService.getById(id);
