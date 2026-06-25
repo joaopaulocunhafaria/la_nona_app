@@ -7,6 +7,7 @@ import 'package:la_nona/services/cart_service.dart';
 import 'package:la_nona/services/favorites_service.dart';
 import 'package:la_nona/services/chat_service.dart';
 import 'package:la_nona/services/session_store.dart';
+import 'package:la_nona/services/telemetry_service.dart';
 import 'package:la_nona/theme/app_theme.dart';
 import 'package:la_nona/widgets/auth_check.dart';
 
@@ -24,6 +25,8 @@ void main() async {
     () async {
       // Carrega a sessão persistida (JWT/refresh token) antes de subir o app.
       await SessionStore.ensureInitialized();
+      // Inicia a coleta de telemetria (sessão de uso, tempo ativo, heartbeats).
+      await TelemetryService.instance.iniciar();
       runApp(const MyApp());
     },
     (error, stackTrace) {

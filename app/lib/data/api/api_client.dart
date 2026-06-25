@@ -28,7 +28,11 @@ class ApiClient {
   void Function()? onUnauthorized;
 
   Map<String, String> _headers({bool withBody = false, bool auth = true}) {
-    final headers = <String, String>{'Accept': 'application/json'};
+    final headers = <String, String>{
+      'Accept': 'application/json',
+      // Identifica a plataforma de origem para a telemetria (registro de login).
+      'X-Client-Platform': 'MOBILE',
+    };
     if (withBody) headers['Content-Type'] = 'application/json';
     if (auth) {
       final token = SessionStore.instance.token;

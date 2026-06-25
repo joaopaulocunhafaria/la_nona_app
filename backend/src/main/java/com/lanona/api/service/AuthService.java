@@ -8,6 +8,7 @@ import com.lanona.api.dto.request.RegisterRequest;
 import com.lanona.api.dto.response.AuthResponse;
 import com.lanona.api.dto.response.UserResponse;
 import com.lanona.api.entity.AuthProvider;
+import com.lanona.api.entity.Platform;
 import com.lanona.api.entity.RefreshToken;
 import com.lanona.api.entity.Role;
 import com.lanona.api.entity.User;
@@ -45,12 +46,13 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final GoogleTokenVerifierService googleTokenVerifierService;
     private final AuthenticationManager authenticationManager;
+    private final TelemetryIngestionService telemetryIngestionService;
 
     @Value("${app.jwt.refresh-token-expiration-ms}")
     private long refreshTokenExpirationMs;
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request, Platform platform) {
         String email = request.email().trim().toLowerCase();
 
         if (userRepository.existsByEmail(email)) {
@@ -68,11 +70,12 @@ public class AuthService {
         // saveAndFlush: createdAt/updatedAt sao gerados pelo Hibernate so' no
         // flush; save() sozinho deixaria esses campos null na resposta abaixo.
         user = userRepository.saveAndFlush(user);
+        telemetryIngestionService.recordLogin(user.getId(), platform);
         return buildAuthResponse(user);
     }
 
     @Transactional
-    public AuthResponse login(LoginRequest request) {
+    public AuthResponse login(LoginRequest request, Platform platform) {
         String email = request.email().trim().toLowerCase();
 
         User user = userRepository.findByEmail(email)
@@ -91,11 +94,12 @@ public class AuthService {
             throw new UnauthorizedException("Usuário foi desabilitado.");
         }
 
+        telemetryIngestionService.recordLogin(user.getId(), platform);
         return buildAuthResponse(user);
     }
 
     @Transactional
-    public AuthResponse loginWithGoogle(GoogleLoginRequest request) {
+    public AuthResponse loginWithGoogle(GoogleLoginRequest request, Platform platform) {
         GoogleIdToken.Payload payload = googleTokenVerifierService.verify(request.idToken());
 
         String email = payload.getEmail().toLowerCase();
@@ -119,6 +123,7 @@ public class AuthService {
         // saveAndFlush: createdAt/updatedAt sao gerados pelo Hibernate so' no
         // flush; save() sozinho deixaria esses campos null na resposta abaixo.
         user = userRepository.saveAndFlush(user);
+        telemetryIngestionService.recordLogin(user.getId(), platform);
         return buildAuthResponse(user);
     }
 

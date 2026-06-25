@@ -1,0 +1,130 @@
+<app-page-header titulo="Telemetria"></app-page-header>
+
+<div class="flex flex-col gap-4 p-4">
+	<!-- Online agora -->
+	<section class="rounded-lg bg-white p-4 shadow">
+		<div class="mb-3 flex items-center justify-between">
+			<h2 class="font-bold" style="color: var(--text-primary)">Usuários online agora</h2>
+			<p-button icon="pi pi-refresh" [text]="true" [rounded]="true" (onClick)="carregarOnline()" />
+		</div>
+
+		@if (carregandoOnline()) {
+			<div class="flex justify-center py-8"><p-progressSpinner /></div>
+		} @else if (online()) {
+			<div class="flex flex-wrap items-center gap-6">
+				<div class="flex gap-6">
+					<div class="flex flex-col">
+						<span class="text-3xl font-bold" style="color: var(--primary-base)">{{ online()!.loggedIn }}</span>
+						<span class="text-xs" style="color: var(--text-secondary)">Logados</span>
+					</div>
+					<div class="flex flex-col">
+						<span class="text-3xl font-bold" style="color: var(--text-secondary)">{{ online()!.anonymous }}</span>
+						<span class="text-xs" style="color: var(--text-secondary)">Anônimos</span>
+					</div>
+				</div>
+				<div class="h-40 w-40">
+					<p-chart type="doughnut" [data]="onlineChart()" />
+				</div>
+			</div>
+		}
+	</section>
+
+	<!-- Logins por periodo -->
+	<section class="rounded-lg bg-white p-4 shadow">
+		<h2 class="mb-3 font-bold" style="color: var(--text-primary)">Logins por período</h2>
+		<div class="mb-3 flex flex-wrap items-end gap-3">
+			<div class="flex flex-col">
+				<label class="text-xs" style="color: var(--text-secondary)">De</label>
+				<p-datepicker [(ngModel)]="loginsDe" [showTime]="true" dateFormat="dd/mm/yy" hourFormat="24" />
+			</div>
+			<div class="flex flex-col">
+				<label class="text-xs" style="color: var(--text-secondary)">Até</label>
+				<p-datepicker [(ngModel)]="loginsAte" [showTime]="true" dateFormat="dd/mm/yy" hourFormat="24" />
+			</div>
+			<p-select [options]="granularidades" [(ngModel)]="granularidade" optionLabel="label" optionValue="value" />
+			<p-button label="Atualizar" icon="pi pi-refresh" (onClick)="carregarLogins()" />
+		</div>
+
+		@if (carregandoLogins()) {
+			<div class="flex justify-center py-8"><p-progressSpinner /></div>
+		} @else if (logins()) {
+			<div class="mb-2 flex gap-6">
+				<div class="flex flex-col">
+					<span class="text-2xl font-bold" style="color: var(--primary-base)">{{ logins()!.total }}</span>
+					<span class="text-xs" style="color: var(--text-secondary)">Total de logins</span>
+				</div>
+				<div class="flex flex-col">
+					<span class="text-2xl font-bold" style="color: var(--text-primary)">{{ logins()!.distinctUsers }}</span>
+					<span class="text-xs" style="color: var(--text-secondary)">Usuários distintos</span>
+				</div>
+			</div>
+			<div class="h-64">
+				<p-chart type="line" [data]="loginsChart()" [options]="opcoesBarra" />
+			</div>
+		}
+	</section>
+
+	<!-- Tempo de acesso -->
+	<section class="rounded-lg bg-white p-4 shadow">
+		<h2 class="mb-3 font-bold" style="color: var(--text-primary)">Tempo de acesso por usuário</h2>
+		<div class="mb-3 flex flex-wrap items-end gap-3">
+			<div class="flex flex-col">
+				<label class="text-xs" style="color: var(--text-secondary)">De</label>
+				<p-datepicker [(ngModel)]="sessoesDe" [showTime]="true" dateFormat="dd/mm/yy" hourFormat="24" />
+			</div>
+			<div class="flex flex-col">
+				<label class="text-xs" style="color: var(--text-secondary)">Até</label>
+				<p-datepicker [(ngModel)]="sessoesAte" [showTime]="true" dateFormat="dd/mm/yy" hourFormat="24" />
+			</div>
+			<p-button label="Atualizar" icon="pi pi-refresh" (onClick)="carregarSessoes()" />
+		</div>
+
+		@if (carregandoSessoes()) {
+			<div class="flex justify-center py-8"><p-progressSpinner /></div>
+		} @else if (sessoes()) {
+			<div class="mb-2 flex gap-6">
+				<div class="flex flex-col">
+					<span class="text-2xl font-bold" style="color: var(--primary-base)">{{ mediaMinutos() }} min</span>
+					<span class="text-xs" style="color: var(--text-secondary)">Tempo ativo médio por sessão</span>
+				</div>
+				<div class="flex flex-col">
+					<span class="text-2xl font-bold" style="color: var(--text-primary)">{{ sessoes()!.totalSessions }}</span>
+					<span class="text-xs" style="color: var(--text-secondary)">Sessões no período</span>
+				</div>
+			</div>
+			@if (sessoes()!.ranking.length === 0) {
+				<div class="py-6 text-center" style="color: var(--text-secondary)">Sem dados no período.</div>
+			} @else {
+				<div class="h-64">
+					<p-chart type="bar" [data]="sessoesChart()" [options]="opcoesBarra" />
+				</div>
+			}
+		}
+	</section>
+
+	<!-- Itens mais vistos -->
+	<section class="rounded-lg bg-white p-4 shadow">
+		<h2 class="mb-3 font-bold" style="color: var(--text-primary)">Itens mais visualizados</h2>
+		<div class="mb-3 flex flex-wrap items-end gap-3">
+			<div class="flex flex-col">
+				<label class="text-xs" style="color: var(--text-secondary)">De</label>
+				<p-datepicker [(ngModel)]="itensDe" [showTime]="true" dateFormat="dd/mm/yy" hourFormat="24" />
+			</div>
+			<div class="flex flex-col">
+				<label class="text-xs" style="color: var(--text-secondary)">Até</label>
+				<p-datepicker [(ngModel)]="itensAte" [showTime]="true" dateFormat="dd/mm/yy" hourFormat="24" />
+			</div>
+			<p-button label="Atualizar" icon="pi pi-refresh" (onClick)="carregarItens()" />
+		</div>
+
+		@if (carregandoItens()) {
+			<div class="flex justify-center py-8"><p-progressSpinner /></div>
+		} @else if (itens().length === 0) {
+			<div class="py-6 text-center" style="color: var(--text-secondary)">Sem visualizações no período.</div>
+		} @else {
+			<div class="h-64">
+				<p-chart type="bar" [data]="itensChart()" [options]="opcoesBarraHorizontal" />
+			</div>
+		}
+	</section>
+</div>

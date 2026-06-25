@@ -4,6 +4,7 @@ import 'package:la_nona/data/api/app_image.dart';
 import 'package:la_nona/data/models/menu_item.dart';
 import 'package:la_nona/services/cart_service.dart';
 import 'package:la_nona/services/favorites_service.dart';
+import 'package:la_nona/services/telemetry_service.dart';
 import 'package:la_nona/theme/app_colors.dart';
 
 /// Página que exibe os detalhes completos de um item do cardápio
@@ -27,6 +28,7 @@ class _MenuItemDetailPageState extends State<MenuItemDetailPage> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    TelemetryService.instance.registrarVisualizacaoItem(widget.item.id);
   }
 
   @override

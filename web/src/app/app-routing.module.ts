@@ -33,6 +33,11 @@ const routes: Routes = [
 		loadChildren: () => import('./modules/admin/users/admin-users.module').then((m) => m.AdminUsersModule),
 		canActivate: [AuthGuard, AdmGuard],
 	},
+	{
+		path: 'admin/telemetria',
+		loadChildren: () => import('./modules/admin/telemetria/telemetria.module').then((m) => m.TelemetriaModule),
+		canActivate: [AuthGuard, AdmGuard],
+	},
 	{ path: '**', redirectTo: '' },
 ];
 

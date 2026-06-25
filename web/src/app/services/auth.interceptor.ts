@@ -19,7 +19,12 @@ export class AuthInterceptor implements HttpInterceptor {
 		const ignorarAuth = ROTAS_SEM_AUTH.some((rota) => request.url.includes(rota));
 		const token = this.localStorageService.getToken();
 
-		const requisicao = !ignorarAuth && token ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : request;
+		// Identifica a plataforma de origem para a telemetria (registro de login no backend).
+		const headers: Record<string, string> = { 'X-Client-Platform': 'WEB' };
+		if (!ignorarAuth && token) {
+			headers['Authorization'] = `Bearer ${token}`;
+		}
+		const requisicao = request.clone({ setHeaders: headers });
 
 		return next.handle(requisicao).pipe(
 			catchError((error: HttpErrorResponse) => {

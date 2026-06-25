@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { TelemetryService } from './services/telemetry.service';
 
 @Component({
 	selector: 'app-root',
@@ -6,4 +7,10 @@ import { Component } from '@angular/core';
 	standalone: false,
 	styleUrl: './app.component.scss',
 })
-export class AppComponent {}
+export class AppComponent implements OnInit {
+	constructor(private readonly telemetryService: TelemetryService) {}
+
+	ngOnInit(): void {
+		this.telemetryService.iniciar();
+	}
+}
