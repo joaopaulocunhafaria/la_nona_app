@@ -10,7 +10,10 @@ export interface MenuItem {
 	name: string;
 	description: string;
 	price: number;
+	/** Nome da categoria (para exibição e filtro no cardápio). */
 	category: string;
+	/** Id da categoria vinculada (usado no formulário de edição). */
+	categoryId: string;
 	available: boolean;
 	images: MenuItemImage[];
 	createdAt: string;
@@ -32,6 +35,7 @@ export interface MenuItemRequest {
 	name: string;
 	description: string;
 	price: number;
+	/** Id da categoria selecionada (o backend também aceita o nome). */
 	category: string;
 	available: boolean;
 	images: MenuItemImageRequest[];

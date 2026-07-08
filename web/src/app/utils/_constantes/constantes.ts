@@ -3,16 +3,6 @@ export interface OpcaoSelect {
 	value: string;
 }
 
-export const CATEGORIAS_MENU: OpcaoSelect[] = [
-	{ label: 'Hamburguer', value: 'HAMBURGUER' },
-	{ label: 'Pizza', value: 'PIZZA' },
-	{ label: 'Salada', value: 'SALADA' },
-	{ label: 'Bebida', value: 'BEBIDA' },
-	{ label: 'Sobremesa', value: 'SOBREMESA' },
-	{ label: 'Acompanhamento', value: 'ACOMPANHAMENTO' },
-	{ label: 'Outro', value: 'OUTRO' },
-];
-
 export const UFS_BRASIL: string[] = [
 	'AC',
 	'AL',

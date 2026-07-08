@@ -17,6 +17,7 @@ function criarItem(id: string, name: string, category: string): MenuItem {
 		description: '',
 		price: 10,
 		category,
+		categoryId: `cat-${id}`,
 		available: true,
 		images: [],
 		createdAt: '',

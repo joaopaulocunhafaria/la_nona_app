@@ -1,20 +1,47 @@
 package com.lanona.api.entity;
 
-public enum MenuCategory {
-    HAMBURGUER,
-    PIZZA,
-    SALADA,
-    BEBIDA,
-    SOBREMESA,
-    ACOMPANHAMENTO,
-    OUTRO;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-    /**
-     * Nome de exibicao usado tanto na API quanto na coluna do banco:
-     * primeira letra maiuscula, restante minusculo (ex.: "Hamburguer").
-     */
-    public String displayName() {
-        String lower = name().toLowerCase();
-        return lower.substring(0, 1).toUpperCase() + lower.substring(1);
-    }
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Categoria de cardapio cadastravel pelo admin. Substitui o antigo enum fixo:
+ * cada MenuItem referencia uma categoria via FK (ver menu_categories).
+ */
+@Entity
+@Table(name = "menu_categories")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class MenuCategory {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(nullable = false, unique = true, length = 60)
+    private String name;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 }

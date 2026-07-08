@@ -36,6 +36,9 @@ class MenuItemServiceTest {
     private com.lanona.api.repository.MenuItemRepository menuItemRepository;
 
     @Mock
+    private com.lanona.api.repository.MenuCategoryRepository menuCategoryRepository;
+
+    @Mock
     private S3StorageService storageService;
 
     @InjectMocks
@@ -45,6 +48,12 @@ class MenuItemServiceTest {
     void setUp() {
         lenient().when(menuItemRepository.saveAndFlush(any(MenuItem.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        // Categoria informada por nome resolve para uma entidade existente.
+        lenient().when(menuCategoryRepository.findByNameIgnoreCase(any()))
+                .thenAnswer(invocation -> Optional.of(MenuCategory.builder()
+                        .id(UUID.randomUUID())
+                        .name(invocation.getArgument(0))
+                        .build()));
     }
 
     @Test
@@ -83,7 +92,7 @@ class MenuItemServiceTest {
                 .name("Velho")
                 .description("desc")
                 .price(new BigDecimal("10.00"))
-                .category(MenuCategory.PIZZA)
+                .category(MenuCategory.builder().id(UUID.randomUUID()).name("Pizza").build())
                 .available(true)
                 .images(new ArrayList<>())
                 .build();
@@ -116,7 +125,8 @@ class MenuItemServiceTest {
         UUID id = UUID.randomUUID();
         MenuItem existing = MenuItem.builder()
                 .id(id).name("X").description("d").price(new BigDecimal("1.00"))
-                .category(MenuCategory.BEBIDA).available(true).images(new ArrayList<>())
+                .category(MenuCategory.builder().id(UUID.randomUUID()).name("Bebida").build())
+                .available(true).images(new ArrayList<>())
                 .build();
         existing.getImages().add(MenuItemImage.builder()
                 .menuItem(existing).imageUrl("https://bucket/menu-items/a.jpg").position(0).build());

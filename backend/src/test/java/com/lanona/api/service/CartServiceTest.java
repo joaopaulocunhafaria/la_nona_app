@@ -51,7 +51,7 @@ class CartServiceTest {
                 .name("Pizza")
                 .description("desc")
                 .price(new BigDecimal("45.00"))
-                .category(MenuCategory.PIZZA)
+                .category(MenuCategory.builder().id(UUID.randomUUID()).name("Pizza").build())
                 .available(true)
                 .build();
 

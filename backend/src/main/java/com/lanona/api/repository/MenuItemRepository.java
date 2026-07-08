@@ -1,6 +1,5 @@
 package com.lanona.api.repository;
 
-import com.lanona.api.entity.MenuCategory;
 import com.lanona.api.entity.MenuItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -13,16 +12,18 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, UUID> {
 
     @Query("""
             SELECT m FROM MenuItem m
-            WHERE (:category IS NULL OR m.category = :category)
+            WHERE (:category IS NULL OR LOWER(m.category.name) = LOWER(CAST(:category AS string)))
               AND (:available IS NULL OR m.available = :available)
               AND (:query IS NULL OR LOWER(m.name) LIKE LOWER(CONCAT('%', CAST(:query AS string), '%')))
             ORDER BY m.createdAt DESC
             """)
     List<MenuItem> search(
-            @Param("category") MenuCategory category,
+            @Param("category") String category,
             @Param("available") Boolean available,
             @Param("query") String query);
 
-    @Query("SELECT DISTINCT m.category FROM MenuItem m ORDER BY m.category")
-    List<MenuCategory> findDistinctCategories();
+    @Query("SELECT DISTINCT m.category.name FROM MenuItem m ORDER BY m.category.name")
+    List<String> findDistinctCategoryNames();
+
+    long countByCategoryId(UUID categoryId);
 }

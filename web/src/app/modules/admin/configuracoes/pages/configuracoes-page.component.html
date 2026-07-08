@@ -1,0 +1,59 @@
+<app-page-header titulo="Configurações"></app-page-header>
+
+<p-confirmDialog></p-confirmDialog>
+
+<div class="mx-auto flex max-w-2xl flex-col gap-6 p-4">
+	<section class="flex flex-col gap-3 rounded-xl bg-white p-4 shadow">
+		<h2 class="font-bold" style="color: var(--text-primary)">Categorias do cardápio</h2>
+		<p class="text-sm" style="color: var(--text-secondary)">
+			Cadastre as categorias usadas ao criar itens do cardápio. Uma categoria com itens vinculados não pode ser excluída.
+		</p>
+
+		<div class="flex flex-col gap-2 sm:flex-row">
+			<input
+				pInputText
+				class="w-full"
+				placeholder="Nova categoria (ex: Massas)"
+				[ngModel]="novaCategoria()"
+				(ngModelChange)="novaCategoria.set($event)"
+				(keyup.enter)="adicionar()"
+				maxlength="60"
+				aria-label="Nome da nova categoria"
+			/>
+			<button pButton type="button" label="Adicionar" icon="pi pi-plus" [loading]="salvando()" (click)="adicionar()"></button>
+		</div>
+	</section>
+
+	@if (carregando()) {
+		<div class="flex justify-center py-12">
+			<p-progressSpinner></p-progressSpinner>
+		</div>
+	} @else if (categorias().length === 0) {
+		<div class="py-12 text-center" style="color: var(--text-secondary)">Nenhuma categoria cadastrada ainda.</div>
+	} @else {
+		<div class="divide-y rounded-xl bg-white shadow">
+			@for (categoria of categorias(); track categoria.id) {
+				<div class="flex items-center gap-3 p-3">
+					<div class="flex min-w-0 flex-1 flex-col">
+						<span class="truncate font-semibold" style="color: var(--text-primary)">{{ categoria.name }}</span>
+						<span class="text-xs" style="color: var(--text-secondary)">
+							{{ categoria.itemCount }} {{ categoria.itemCount === 1 ? 'item vinculado' : 'itens vinculados' }}
+						</span>
+					</div>
+
+					<button
+						pButton
+						type="button"
+						icon="pi pi-trash"
+						severity="danger"
+						[text]="true"
+						[disabled]="categoria.itemCount > 0"
+						[pTooltip]="categoria.itemCount > 0 ? 'Remova os itens vinculados antes de excluir' : 'Excluir categoria'"
+						tooltipPosition="left"
+						(click)="excluir(categoria)"
+					></button>
+				</div>
+			}
+		</div>
+	}
+</div>

@@ -89,11 +89,12 @@
 					<label class="text-sm font-medium" style="color: var(--text-secondary)">Categoria</label>
 					<p-select
 						formControlName="category"
-						[options]="categorias"
-						optionLabel="label"
-						optionValue="value"
+						[options]="categorias()"
+						optionLabel="name"
+						optionValue="id"
 						placeholder="Selecione"
 						styleClass="w-full"
+						emptyMessage="Nenhuma categoria cadastrada"
 					></p-select>
 				</div>
 			</div>

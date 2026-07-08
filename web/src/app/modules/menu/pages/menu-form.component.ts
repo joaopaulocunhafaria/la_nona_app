@@ -2,8 +2,9 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NotificacoesService } from '../../../services/notificacoes.service';
-import { CATEGORIAS_MENU } from '../../../utils/_constantes/constantes';
+import { MenuCategory } from '../_modelos/menu-category.model';
 import { MenuItemImage, MenuItemImageRequest } from '../_modelos/menu-item.model';
+import { MenuCategoryService } from '../_services/menu-category.service';
 import { MenuItemService } from '../_services/menu-item.service';
 
 interface NovaImagem {
@@ -18,7 +19,7 @@ interface NovaImagem {
 	styleUrl: './menu-form.component.scss',
 })
 export class MenuFormComponent implements OnInit {
-	readonly categorias = CATEGORIAS_MENU;
+	readonly categorias = signal<MenuCategory[]>([]);
 	readonly carregando = signal(false);
 	readonly salvando = signal(false);
 	readonly imagensExistentes = signal<MenuItemImage[]>([]);
@@ -42,10 +43,16 @@ export class MenuFormComponent implements OnInit {
 		private readonly route: ActivatedRoute,
 		private readonly router: Router,
 		private readonly menuItemService: MenuItemService,
+		private readonly menuCategoryService: MenuCategoryService,
 		private readonly notificacoesService: NotificacoesService,
 	) {}
 
 	ngOnInit(): void {
+		this.menuCategoryService.listar().subscribe({
+			next: (categorias) => this.categorias.set(categorias),
+			error: () => this.notificacoesService.erro('Não foi possível carregar as categorias.'),
+		});
+
 		this.itemId = this.route.snapshot.paramMap.get('id');
 		if (this.itemId) {
 			this.carregando.set(true);
@@ -54,7 +61,7 @@ export class MenuFormComponent implements OnInit {
 					name: item.name,
 					description: item.description,
 					price: item.price,
-					category: item.category.toUpperCase(),
+					category: item.categoryId,
 					available: item.available,
 				});
 				this.imagensExistentes.set([...item.images].sort((a, b) => a.position - b.position));

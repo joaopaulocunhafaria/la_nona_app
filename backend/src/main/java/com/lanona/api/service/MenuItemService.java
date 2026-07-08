@@ -8,6 +8,7 @@ import com.lanona.api.entity.MenuItem;
 import com.lanona.api.entity.MenuItemImage;
 import com.lanona.api.exception.BadRequestException;
 import com.lanona.api.exception.ResourceNotFoundException;
+import com.lanona.api.repository.MenuCategoryRepository;
 import com.lanona.api.repository.MenuItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,23 +27,22 @@ public class MenuItemService {
     private static final String IMAGE_DIRECTORY = "menu-items";
 
     private final MenuItemRepository menuItemRepository;
+    private final MenuCategoryRepository menuCategoryRepository;
     private final S3StorageService storageService;
 
     @Transactional(readOnly = true)
     public List<MenuItemResponse> search(String category, Boolean available, String query) {
-        MenuCategory categoryEnum = (category == null || category.isBlank()) ? null : parseCategory(category);
+        String normalizedCategory = (category == null || category.isBlank()) ? null : category.trim();
         String normalizedQuery = (query == null || query.isBlank()) ? null : query.trim();
 
-        return menuItemRepository.search(categoryEnum, available, normalizedQuery).stream()
+        return menuItemRepository.search(normalizedCategory, available, normalizedQuery).stream()
                 .map(MenuItemResponse::from)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public List<String> listCategories() {
-        return menuItemRepository.findDistinctCategories().stream()
-                .map(MenuCategory::displayName)
-                .toList();
+        return menuItemRepository.findDistinctCategoryNames();
     }
 
     @Transactional(readOnly = true)
@@ -56,7 +56,7 @@ public class MenuItemService {
                 .name(request.name().trim())
                 .description(request.description().trim())
                 .price(request.price())
-                .category(parseCategory(request.category()))
+                .category(resolveCategory(request.category()))
                 .available(request.available() == null || request.available())
                 .build();
 
@@ -72,7 +72,7 @@ public class MenuItemService {
         item.setName(request.name().trim());
         item.setDescription(request.description().trim());
         item.setPrice(request.price());
-        item.setCategory(parseCategory(request.category()));
+        item.setCategory(resolveCategory(request.category()));
         item.setAvailable(request.available() == null || request.available());
 
         List<String> previousUrls = item.getImages().stream()
@@ -135,12 +135,24 @@ public class MenuItemService {
                 .orElseThrow(() -> new ResourceNotFoundException("Item de cardápio não encontrado."));
     }
 
-    private MenuCategory parseCategory(String raw) {
+    /**
+     * Resolve a categoria informada na requisicao. Aceita tanto o id (UUID)
+     * quanto o nome da categoria (case-insensitive), mantendo compatibilidade
+     * com clientes que ainda enviam o nome (ex.: app Flutter).
+     */
+    private MenuCategory resolveCategory(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new BadRequestException("Selecione uma categoria.");
+        }
+        String value = raw.trim();
         try {
-            return MenuCategory.valueOf(raw.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestException(
-                    "Categoria inválida. Use: Hamburguer, Pizza, Salada, Bebida, Sobremesa, Acompanhamento ou Outro.");
+            UUID id = UUID.fromString(value);
+            return menuCategoryRepository.findById(id)
+                    .orElseThrow(() -> new BadRequestException("Categoria não encontrada."));
+        } catch (IllegalArgumentException notUuid) {
+            return menuCategoryRepository.findByNameIgnoreCase(value)
+                    .orElseThrow(() -> new BadRequestException(
+                            "Categoria inválida. Cadastre a categoria antes de vinculá-la a um item."));
         }
     }
 }
