@@ -8,6 +8,13 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/la_nona}
     username: ${DB_USERNAME:icismep}
     password: ${DB_PASSWORD:icismep}
+    hikari:
+      # Queries nativas (@Query nativeQuery, ex.: series temporais com date_trunc em
+      # login_events/telemetry_sessions) usam o nome da tabela SEM schema e resolvem pelo
+      # search_path da conexao. O default_schema do Hibernate abaixo so' qualifica entidades
+      # JPA/JPQL, nao SQL nativo. Sem isto, /api/admin/telemetry/* estoura com
+      # "relation ... does not exist" (500). Alinhamos o search_path ao schema dedicado.
+      connection-init-sql: SET search_path TO ${DB_SCHEMA:la_nona_api}, public
 
   jpa:
     open-in-view: false
