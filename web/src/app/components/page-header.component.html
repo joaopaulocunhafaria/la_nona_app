@@ -10,5 +10,16 @@
 		</button>
 	}
 	<h1 class="flex-1 truncate text-center text-xl font-semibold" style="color: var(--text-on-dark)">{{ titulo }}</h1>
+	@if (mostrarHome) {
+		<button
+			type="button"
+			class="flex h-10 w-10 flex-shrink-0 items-center justify-center text-2xl"
+			style="color: var(--text-on-dark)"
+			aria-label="Ir para o início"
+			(click)="irParaInicio()"
+		>
+			<i class="pi pi-home"></i>
+		</button>
+	}
 	<ng-content></ng-content>
 </div>
