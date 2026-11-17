@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NotificacoesService } from '../../../services/notificacoes.service';
+import { mensagemErro } from '../../../utils/_metodos/supabase';
 import { MenuCategory } from '../_modelos/menu-category.model';
 import { MenuItemImage, MenuItemImageRequest, MenuItemStatus, STATUS_OPTIONS } from '../_modelos/menu-item.model';
 import { MenuCategoryService } from '../_services/menu-category.service';
@@ -101,45 +102,29 @@ export class MenuFormComponent implements OnInit {
 		}
 
 		this.salvando.set(true);
-		this.converterImagens().then((images) => {
-			const { name, description, price, category, status } = this.form.getRawValue();
-			const request = { name, description, price: price!, category, status, images };
+		const { name, description, price, category, status } = this.form.getRawValue();
+		const request = { name, description, price: price!, category, status, images: this.imagensDoFormulario() };
 
-			const requisicao$ = this.itemId ? this.menuItemService.atualizar(this.itemId, request) : this.menuItemService.criar(request);
+		const requisicao$ = this.itemId ? this.menuItemService.atualizar(this.itemId, request) : this.menuItemService.criar(request);
 
-			requisicao$.subscribe({
-				next: () => {
-					this.salvando.set(false);
-					this.notificacoesService.sucesso(this.itemId ? 'Item atualizado com sucesso!' : 'Item adicionado com sucesso!');
-					this.router.navigate(['/menu']);
-				},
-				error: (erro) => {
-					this.salvando.set(false);
-					this.notificacoesService.erro(erro?.message ?? 'Não foi possível salvar o item.');
-				},
-			});
+		requisicao$.subscribe({
+			next: () => {
+				this.salvando.set(false);
+				this.notificacoesService.sucesso(this.itemId ? 'Item atualizado com sucesso!' : 'Item adicionado com sucesso!');
+				this.router.navigate(['/menu']);
+			},
+			error: (erro) => {
+				this.salvando.set(false);
+				this.notificacoesService.erro(mensagemErro(erro, 'Não foi possível salvar o item.'));
+			},
 		});
 	}
 
-	private async converterImagens(): Promise<MenuItemImageRequest[]> {
-		// Imagens já armazenadas são mantidas pela URL (sem reenviar o binário);
-		// apenas as novas sobem como base64 para o backend salvar no bucket.
-		const existentes: MenuItemImageRequest[] = this.imagensExistentes().map((imagem) => ({ url: imagem.url }));
-		const novas = await Promise.all(this.novasImagens().map((nova) => this.arquivoParaBase64(nova.arquivo)));
+	private imagensDoFormulario(): MenuItemImageRequest[] {
+		// Imagens já armazenadas são mantidas pela URL (sem reenviar o arquivo);
+		// as novas vão como File para o serviço comprimir e enviar ao bucket.
+		const existentes: MenuItemImageRequest[] = this.imagensExistentes().map((imagem) => ({ url: imagem.url, storagePath: imagem.storagePath }));
+		const novas: MenuItemImageRequest[] = this.novasImagens().map((nova) => ({ arquivo: nova.arquivo }));
 		return [...existentes, ...novas];
-	}
-
-	private arquivoParaBase64(arquivo: File): Promise<MenuItemImageRequest> {
-		return new Promise((resolve, reject) => {
-			const leitor = new FileReader();
-			leitor.onload = () => {
-				const dataUri = leitor.result as string;
-				const [meta, base64] = dataUri.split(',');
-				const contentType = meta.replace('data:', '').replace(';base64', '');
-				resolve({ base64, contentType });
-			};
-			leitor.onerror = reject;
-			leitor.readAsDataURL(arquivo);
-		});
 	}
 }

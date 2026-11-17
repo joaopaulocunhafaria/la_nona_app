@@ -1,12 +1,16 @@
+import type { StatusItemCardapio } from '@lanona/shared';
+
 export interface MenuItemImage {
 	id: string;
-	/** URL pública da imagem no bucket (ou data URI legada de itens antigos). */
+	/** URL pública da imagem (bucket `cardapio` ou URL externa). */
 	url: string;
+	/** Caminho do objeto no bucket `cardapio` (null para URLs externas). */
+	storagePath: string | null;
 	position: number;
 }
 
-/** Situação de um item do cardápio (espelha o enum MenuItemStatus do backend). */
-export type MenuItemStatus = 'DISPONIVEL' | 'FEITO_NA_HORA' | 'VERIFICAR_DISPONIBILIDADE' | 'INDISPONIVEL';
+/** Situação de um item do cardápio (espelha o check de `menu_items.status`). */
+export type MenuItemStatus = StatusItemCardapio;
 
 /** Rótulo exibido ao usuário para cada status. */
 export const STATUS_LABELS: Record<MenuItemStatus, string> = {
@@ -50,21 +54,20 @@ export interface MenuItem {
 }
 
 /**
- * Imagem enviada ao backend. Para uma imagem nova, informe `base64` +
- * `contentType` (o backend faz o upload ao bucket). Para manter uma imagem já
- * existente na edição, informe apenas `url`.
+ * Imagem do formulário de item. Para uma imagem nova, informe `arquivo` (o serviço comprime e
+ * envia ao bucket). Para manter uma imagem já existente na edição, informe `url` (+ `storagePath`).
  */
 export interface MenuItemImageRequest {
 	url?: string;
-	base64?: string;
-	contentType?: string;
+	storagePath?: string | null;
+	arquivo?: File;
 }
 
 export interface MenuItemRequest {
 	name: string;
 	description: string;
 	price: number;
-	/** Id da categoria selecionada (o backend também aceita o nome). */
+	/** Id da categoria selecionada. */
 	category: string;
 	status: MenuItemStatus;
 	images: MenuItemImageRequest[];
