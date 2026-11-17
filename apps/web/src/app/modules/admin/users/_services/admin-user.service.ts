@@ -1,20 +1,20 @@
-import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { environment } from '../../../../../environments/environment';
-import { UsuarioResponse } from '../../../../services/auth.models';
+import { map, Observable } from 'rxjs';
+import { UsuarioResponse, usuarioDoPerfil } from '../../../../services/auth.models';
+import { SupabaseService } from '../../../../services/supabase.service';
+import { deSupabase } from '../../../../utils/_metodos/supabase';
 
 @Injectable({ providedIn: 'root' })
 export class AdminUserService {
-	private readonly baseUrl = `${environment.apiUrl}/admin/users`;
-
-	constructor(private readonly http: HttpClient) {}
+	constructor(private readonly supabaseService: SupabaseService) {}
 
 	listar(search?: string): Observable<UsuarioResponse[]> {
-		return this.http.get<UsuarioResponse[]>(this.baseUrl, { params: search ? { search } : {} });
+		return deSupabase(this.supabaseService.client.rpc('admin_buscar_usuarios', { p_busca: search?.trim() || undefined })).pipe(
+			map((perfis) => perfis.map(usuarioDoPerfil)),
+		);
 	}
 
 	atualizarRole(id: string, role: string): Observable<UsuarioResponse> {
-		return this.http.put<UsuarioResponse>(`${this.baseUrl}/${id}/role`, { role });
+		return deSupabase(this.supabaseService.client.rpc('admin_alterar_cargo', { p_id: id, p_role: role })).pipe(map(usuarioDoPerfil));
 	}
 }

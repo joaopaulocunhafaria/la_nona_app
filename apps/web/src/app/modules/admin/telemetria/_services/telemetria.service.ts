@@ -1,7 +1,7 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { environment } from '../../../../../environments/environment';
+import { map, Observable } from 'rxjs';
+import { SupabaseService } from '../../../../services/supabase.service';
+import { deSupabase } from '../../../../utils/_metodos/supabase';
 
 export interface OnlineCount {
 	loggedIn: number;
@@ -48,44 +48,45 @@ export interface Periodo {
 	to?: string;
 }
 
+/** Consultas do painel de telemetria (RPCs `telemetria_*`, restritas a administradores). */
 @Injectable({ providedIn: 'root' })
 export class TelemetriaService {
-	private readonly baseUrl = `${environment.apiUrl}/admin/telemetry`;
-
-	constructor(private readonly http: HttpClient) {}
+	constructor(private readonly supabaseService: SupabaseService) {}
 
 	online(): Observable<OnlineCount> {
-		return this.http.get<OnlineCount>(`${this.baseUrl}/online`);
+		return this.rpc<OnlineCount>(this.supabaseService.client.rpc('telemetria_online'));
 	}
 
 	logins(periodo: Periodo, granularity: 'hour' | 'day'): Observable<LoginMetrics> {
-		const params = this.comPeriodo(periodo).set('granularity', granularity);
-		return this.http.get<LoginMetrics>(`${this.baseUrl}/logins`, { params });
+		return this.rpc<LoginMetrics>(
+			this.supabaseService.client.rpc('telemetria_logins', { ...this.comPeriodo(periodo), p_granularidade: granularity }),
+		);
 	}
 
 	acessosMenu(periodo: Periodo, granularity: 'hour' | 'day'): Observable<MenuViewMetrics> {
-		const params = this.comPeriodo(periodo).set('granularity', granularity);
-		return this.http.get<MenuViewMetrics>(`${this.baseUrl}/menu-views`, { params });
+		return this.rpc<MenuViewMetrics>(
+			this.supabaseService.client.rpc('telemetria_acessos_menu', { ...this.comPeriodo(periodo), p_granularidade: granularity }),
+		);
 	}
 
 	sessoes(periodo: Periodo, limit = 20): Observable<SessionDurations> {
-		const params = this.comPeriodo(periodo).set('limit', String(limit));
-		return this.http.get<SessionDurations>(`${this.baseUrl}/sessions`, { params });
+		return this.rpc<SessionDurations>(this.supabaseService.client.rpc('telemetria_sessoes', { ...this.comPeriodo(periodo), p_limite: limit }));
 	}
 
 	itensMaisVistos(periodo: Periodo, limit = 10): Observable<TopItem[]> {
-		const params = this.comPeriodo(periodo).set('limit', String(limit));
-		return this.http.get<TopItem[]>(`${this.baseUrl}/top-items`, { params });
+		return this.rpc<TopItem[]>(
+			this.supabaseService.client.rpc('telemetria_itens_mais_vistos', { ...this.comPeriodo(periodo), p_limite: limit }),
+		);
 	}
 
-	private comPeriodo(periodo: Periodo): HttpParams {
-		let params = new HttpParams();
-		if (periodo.from) {
-			params = params.set('from', periodo.from);
-		}
-		if (periodo.to) {
-			params = params.set('to', periodo.to);
-		}
-		return params;
+	private rpc<T>(consulta: PromiseLike<{ data: unknown; error: Error | null }>): Observable<T> {
+		return deSupabase(consulta).pipe(map((dados) => dados as T));
+	}
+
+	private comPeriodo(periodo: Periodo): { p_de?: string; p_ate?: string } {
+		return {
+			...(periodo.from ? { p_de: periodo.from } : {}),
+			...(periodo.to ? { p_ate: periodo.to } : {}),
+		};
 	}
 }
