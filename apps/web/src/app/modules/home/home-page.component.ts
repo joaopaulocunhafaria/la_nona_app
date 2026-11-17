@@ -92,24 +92,18 @@ export class HomePageComponent implements OnInit {
 			return;
 		}
 
-		const leitor = new FileReader();
-		leitor.onload = () => {
-			const resultado = leitor.result as string;
-			const [, base64] = resultado.split(',');
-			this.carregandoFoto.set(true);
-			this.usuarioService.atualizarFoto({ imageBase64: base64, contentType: arquivo.type }).subscribe({
-				next: (usuario) => {
-					this.usuario.set(usuario);
-					this.carregandoFoto.set(false);
-					this.notificacoesService.sucesso('Foto de perfil atualizada!');
-				},
-				error: (erro) => {
-					this.carregandoFoto.set(false);
-					this.notificacoesService.erro(erro?.message ?? 'Erro ao atualizar foto.');
-				},
-			});
-		};
-		leitor.readAsDataURL(arquivo);
+		this.carregandoFoto.set(true);
+		this.usuarioService.atualizarFoto(arquivo).subscribe({
+			next: (usuario) => {
+				this.usuario.set(usuario);
+				this.carregandoFoto.set(false);
+				this.notificacoesService.sucesso('Foto de perfil atualizada!');
+			},
+			error: (erro) => {
+				this.carregandoFoto.set(false);
+				this.notificacoesService.erro(erro?.message ?? 'Erro ao atualizar foto.');
+			},
+		});
 		input.value = '';
 	}
 

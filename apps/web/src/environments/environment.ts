@@ -1,10 +1,11 @@
-// ARQUIVO GERADO por scripts/set-env.js no build (hook prebuild).
-// Nao edite manualmente: em producao os valores vem de variaveis de ambiente
-// (API_BASE_URL, GOOGLE_CLIENT_ID). Sem elas, cai nos caminhos relativos usados
-// no desenvolvimento local (proxy.conf.json -> localhost:8080).
+// Produção: Dashboard Supabase > Project Settings > API.
+// A supabaseUrl é a URL BASE do projeto (sem /rest/v1).
+// A publishable/anon key é pública por design; a segurança vem das policies de RLS.
+// NUNCA coloque a service_role/secret key no front-end.
+// O build da Vercel (`npm run build:vercel`) falha enquanto estes valores não forem os de produção.
 export const environment = {
 	production: true,
-	apiUrl: '/api',
-	wsUrl: '/ws',
+	supabaseUrl: 'https://PREENCHER.supabase.co',
+	supabaseKey: 'sb_publishable_PREENCHER',
 	googleClientId: '',
 };

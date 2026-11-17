@@ -1,7 +1,7 @@
 import { registerLocaleData } from '@angular/common';
 import localePt from '@angular/common/locales/pt';
-import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { DEFAULT_CURRENCY_CODE, LOCALE_ID, NgModule } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { DEFAULT_CURRENCY_CODE, inject, LOCALE_ID, NgModule, provideAppInitializer } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { BrowserModule } from '@angular/platform-browser';
 import { MessageService } from 'primeng/api';
@@ -11,7 +11,7 @@ import { provideEnvironmentNgxMask } from 'ngx-mask';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { AuthInterceptor } from './services/auth.interceptor';
+import { AuthService } from './services/auth.service';
 import { TemaApp } from './TemaApp';
 
 registerLocaleData(localePt);
@@ -24,8 +24,10 @@ registerLocaleData(localePt);
 		{ provide: DEFAULT_CURRENCY_CODE, useValue: 'BRL' },
 		provideAnimationsAsync(),
 		provideEnvironmentNgxMask(),
-		provideHttpClient(withInterceptorsFromDi()),
-		{ provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
+		// HttpClient só para APIs externas (ex.: ViaCEP); o backend é o Supabase (supabase-js).
+		provideHttpClient(),
+		// Restaura a sessão do Supabase Auth antes da primeira tela, para os signals de login já virem prontos.
+		provideAppInitializer(() => inject(AuthService).sessaoPronta()),
 		MessageService,
 		providePrimeNG({
 			theme: {

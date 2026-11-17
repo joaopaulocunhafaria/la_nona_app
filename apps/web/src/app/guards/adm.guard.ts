@@ -1,19 +1,19 @@
 import { Injectable } from '@angular/core';
 import { CanActivate, Router, UrlTree } from '@angular/router';
 import { MessageService } from 'primeng/api';
-import { LocalStorageService } from '../services/local-storage.service';
+import { AuthService } from '../services/auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class AdmGuard implements CanActivate {
 	constructor(
-		private readonly localStorageService: LocalStorageService,
+		private readonly authService: AuthService,
 		private readonly router: Router,
 		private readonly messageService: MessageService,
 	) {}
 
-	canActivate(): boolean | UrlTree {
-		const usuario = this.localStorageService.getUsuario();
-		if (usuario?.isAdmin) {
+	async canActivate(): Promise<boolean | UrlTree> {
+		await this.authService.sessaoPronta();
+		if (this.authService.isAdmin()) {
 			return true;
 		}
 

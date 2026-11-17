@@ -1,18 +1,19 @@
 import { Injectable } from '@angular/core';
 import { CanActivate, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
-import { LocalStorageService } from '../services/local-storage.service';
+import { AuthService } from '../services/auth.service';
 import { NotificacoesService } from '../services/notificacoes.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthGuard implements CanActivate {
 	constructor(
-		private readonly localStorageService: LocalStorageService,
+		private readonly authService: AuthService,
 		private readonly notificacoesService: NotificacoesService,
 		private readonly router: Router,
 	) {}
 
-	canActivate(_: unknown, state: RouterStateSnapshot): boolean | UrlTree {
-		if (this.localStorageService.getToken()) {
+	async canActivate(_: unknown, state: RouterStateSnapshot): Promise<boolean | UrlTree> {
+		await this.authService.sessaoPronta();
+		if (this.authService.isAuthenticated()) {
 			return true;
 		}
 

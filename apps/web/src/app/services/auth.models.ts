@@ -1,6 +1,8 @@
+import type { CargoUsuario, Perfil } from '@lanona/shared';
+
 export type AuthProvider = 'local' | 'google';
 
-export type UsuarioRole = 'cliente' | 'entregador' | 'admin';
+export type UsuarioRole = CargoUsuario;
 
 export interface EnderecoResponse {
 	cep: string | null;
@@ -12,6 +14,7 @@ export interface EnderecoResponse {
 	complemento: string | null;
 }
 
+/** Usuário logado no formato usado pelas telas (derivado da linha de `profiles`). */
 export interface UsuarioResponse {
 	id: string;
 	email: string;
@@ -24,12 +27,6 @@ export interface UsuarioResponse {
 	address: EnderecoResponse;
 	createdAt: string;
 	updatedAt: string;
-}
-
-export interface AuthResponse {
-	accessToken: string;
-	refreshToken: string;
-	user: UsuarioResponse;
 }
 
 export interface LoginRequest {
@@ -57,7 +54,27 @@ export interface AddressRequest {
 	complemento?: string;
 }
 
-export interface PhotoRequest {
-	imageBase64: string;
-	contentType: string;
+/** Converte a linha de `profiles` no modelo das telas. */
+export function usuarioDoPerfil(perfil: Perfil): UsuarioResponse {
+	return {
+		id: perfil.id,
+		email: perfil.email,
+		name: perfil.name,
+		photo: perfil.photo,
+		provider: perfil.provider === 'google' ? 'google' : 'local',
+		role: perfil.role as UsuarioRole,
+		isAdmin: perfil.role === 'admin',
+		onboardingCompleted: perfil.onboarding_completed,
+		address: {
+			cep: perfil.address_cep,
+			rua: perfil.address_rua,
+			bairro: perfil.address_bairro,
+			numero: perfil.address_numero,
+			cidade: perfil.address_cidade,
+			estado: perfil.address_estado,
+			complemento: perfil.address_complemento,
+		},
+		createdAt: perfil.created_at,
+		updatedAt: perfil.updated_at,
+	};
 }
