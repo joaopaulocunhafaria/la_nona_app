@@ -37,3 +37,16 @@ migrate_working_dir/
 # JWT secret). NUNCA versionar — contem credenciais de producao.
 DEPLOYMENT.local.md
 
+
+# Node / Angular (monorepo npm workspaces)
+node_modules/
+.angular/
+
+# Supabase / segredos locais
+.env
+supabase/.temp
+supabase/.branches
+
+# Relatórios do Playwright
+e2e-relatorio/
+e2e-resultados/

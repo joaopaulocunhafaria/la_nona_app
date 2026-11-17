@@ -1,0 +1,48 @@
+{
+	"name": "la-nona",
+	"version": "0.0.0",
+	"private": true,
+	"packageManager": "npm@10.9.2",
+	"engines": {
+		"node": ">=22.0.0 <23"
+	},
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
+	"scripts": {
+		"start": "npm run start -w @lanona/web",
+		"build": "npm run build -w @lanona/web",
+		"build:vercel": "node scripts/verificar-ambiente-producao.mjs && npm run build -w @lanona/web -- --configuration production",
+		"verificar:producao": "node scripts/verificar-ambiente-producao.mjs",
+		"test": "npm run test --workspaces --if-present",
+		"typecheck": "npm run typecheck --workspaces --if-present",
+		"e2e": "npm run e2e -w @lanona/web",
+		"test:tudo": "npm run typecheck && npm run test:ci -w @lanona/web && npm run db:test && npm run e2e",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"db:start": "supabase start",
+		"db:stop": "supabase stop",
+		"db:status": "supabase status",
+		"db:reset": "supabase db reset",
+		"db:diff": "supabase db diff -f",
+		"db:migration": "supabase migration new",
+		"db:push": "supabase db push --remote",
+		"db:types": "supabase gen types typescript --local > packages/shared/src/database.types.ts && prettier --write packages/shared/src/database.types.ts",
+		"db:types:remote": "supabase gen types typescript --remote > packages/shared/src/database.types.ts && prettier --write packages/shared/src/database.types.ts",
+		"db:test": "supabase test db",
+		"functions:serve": "supabase functions serve",
+		"functions:deploy": "supabase functions deploy",
+		"prepare": "husky"
+	},
+	"devDependencies": {
+		"husky": "^9.1.7",
+		"lint-staged": "^16.2.0",
+		"prettier": "^3.8.1",
+		"prettier-plugin-tailwindcss": "^0.7.4",
+		"supabase": "^3.2.0"
+	},
+	"lint-staged": {
+		"*": "prettier --write --ignore-unknown"
+	}
+}

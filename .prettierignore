@@ -1,0 +1,12 @@
+node_modules
+dist
+coverage
+.angular
+supabase/.temp
+supabase/.branches
+package-lock.json
+app
+backend
+e2e-relatorio
+e2e-resultados
+*.md
