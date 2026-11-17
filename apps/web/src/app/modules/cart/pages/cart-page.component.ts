@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { ChatService } from '../../../services/chat.service';
 import { NotificacoesService } from '../../../services/notificacoes.service';
+import { mensagemErro } from '../../../utils/_metodos/supabase';
 import { BrlPipe } from '../../../utils/_pipes/brl.pipe';
 import { Cart, CartItem } from '../_modelos/cart.model';
 import { CartService } from '../_services/cart.service';
@@ -47,15 +48,19 @@ export class CartPageComponent implements OnInit {
 			this.remover(item);
 			return;
 		}
-		this.cartService.atualizarQuantidade(item.menuItem.id, novaQuantidade).subscribe();
+		this.cartService.atualizarQuantidade(item.menuItem.id, novaQuantidade).subscribe({ error: (erro) => this.mostrarErro(erro) });
 	}
 
 	aumentar(item: CartItem): void {
-		this.cartService.atualizarQuantidade(item.menuItem.id, item.quantity + 1).subscribe();
+		this.cartService.atualizarQuantidade(item.menuItem.id, item.quantity + 1).subscribe({ error: (erro) => this.mostrarErro(erro) });
 	}
 
 	remover(item: CartItem): void {
-		this.cartService.remover(item.menuItem.id).subscribe();
+		this.cartService.remover(item.menuItem.id).subscribe({ error: (erro) => this.mostrarErro(erro) });
+	}
+
+	private mostrarErro(erro: unknown): void {
+		this.notificacoesService.erro(mensagemErro(erro, 'Não foi possível atualizar o carrinho.'));
 	}
 
 	finalizarPedido(): void {
