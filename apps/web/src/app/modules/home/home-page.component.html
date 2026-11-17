@@ -2,7 +2,7 @@
 
 <div class="flex items-center gap-3 px-4 py-4 shadow" style="background-color: var(--primary-base)">
 	@if (isAuthenticated()) {
-		<button type="button" class="relative text-2xl" style="color: var(--text-on-dark)" (click)="abrirChat()">
+		<button type="button" class="relative text-2xl" style="color: var(--text-on-dark)" aria-label="Abrir chat de suporte" (click)="abrirChat()">
 			<i class="pi pi-comments"></i>
 			@if (unreadCount() > 0) {
 				<p-badge [value]="unreadLabel()" severity="danger" class="absolute -top-2 -right-2"></p-badge>
@@ -15,11 +15,11 @@
 	<h1 class="brand-title flex-1 text-center text-4xl font-bold">La Nona</h1>
 
 	@if (isAuthenticated()) {
-		<button type="button" class="text-2xl" style="color: var(--text-on-dark)" (click)="sair()" title="Sair da conta">
+		<button type="button" class="text-2xl" style="color: var(--text-on-dark)" (click)="sair()" title="Sair da conta" aria-label="Sair da conta">
 			<i class="pi pi-sign-out"></i>
 		</button>
 	} @else {
-		<button type="button" class="text-2xl" style="color: var(--text-on-dark)" (click)="irParaLogin()" title="Entrar na conta">
+		<button type="button" class="text-2xl" style="color: var(--text-on-dark)" (click)="irParaLogin()" title="Entrar na conta" aria-label="Entrar na conta">
 			<i class="pi pi-sign-in"></i>
 		</button>
 	}

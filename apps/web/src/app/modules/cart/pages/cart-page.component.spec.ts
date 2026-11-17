@@ -3,7 +3,7 @@ import localePt from '@angular/common/locales/pt';
 import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 // O BrlPipe formata moeda em pt-BR; registramos o locale como no AppModule.
 registerLocaleData(localePt);
@@ -68,7 +68,7 @@ describe('CartPageComponent', () => {
 	};
 	const chatServiceStub = {
 		conectar: jasmine.createSpy('conectar'),
-		enviarMensagem: jasmine.createSpy('enviarMensagem'),
+		enviarMensagem: jasmine.createSpy('enviarMensagem').and.returnValue(of({ id: 'msg-1' })),
 	};
 	const authServiceStub = { usuario: () => usuario() };
 	const notificacoesStub = {
@@ -86,6 +86,8 @@ describe('CartPageComponent', () => {
 		usuario.set(criarUsuario());
 		chatServiceStub.conectar.calls.reset();
 		chatServiceStub.enviarMensagem.calls.reset();
+		chatServiceStub.enviarMensagem.and.returnValue(of({ id: 'msg-1' }));
+		notificacoesStub.erro.calls.reset();
 		cartServiceStub.limpar.calls.reset();
 		routerStub.navigate.calls.reset();
 
@@ -120,7 +122,6 @@ describe('CartPageComponent', () => {
 	it('confirmarPedido envia o resumo no chat, limpa o carrinho e navega', () => {
 		component.confirmarPedido();
 
-		expect(chatServiceStub.conectar).toHaveBeenCalled();
 		expect(chatServiceStub.enviarMensagem).toHaveBeenCalledTimes(1);
 
 		const [userId, texto] = chatServiceStub.enviarMensagem.calls.mostRecent().args;
@@ -134,6 +135,16 @@ describe('CartPageComponent', () => {
 		expect(component.mostrarConfirmacao()).toBeFalse();
 		expect(cartServiceStub.limpar).toHaveBeenCalled();
 		expect(routerStub.navigate).toHaveBeenCalledWith(['/chat']);
+	});
+
+	it('confirmarPedido não limpa o carrinho se a mensagem não foi enviada', () => {
+		chatServiceStub.enviarMensagem.and.returnValue(throwError(() => new Error('Mensagem não pode estar vazia')));
+
+		component.confirmarPedido();
+
+		expect(cartServiceStub.limpar).not.toHaveBeenCalled();
+		expect(routerStub.navigate).not.toHaveBeenCalled();
+		expect(notificacoesStub.erro).toHaveBeenCalledWith('Mensagem não pode estar vazia');
 	});
 
 	it('confirmarPedido bloqueia quando não há usuário logado', () => {

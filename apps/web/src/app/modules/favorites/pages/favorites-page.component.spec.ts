@@ -1,10 +1,10 @@
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { MessageService } from 'primeng/api';
 
 import { FavoritesPageComponent } from './favorites-page.component';
+import { provideSupabaseFalso } from '../../../../testing/supabase-falso';
 
 describe('FavoritesPageComponent', () => {
 	let component: FavoritesPageComponent;
@@ -12,8 +12,9 @@ describe('FavoritesPageComponent', () => {
 
 	beforeEach(async () => {
 		await TestBed.configureTestingModule({
+			schemas: [NO_ERRORS_SCHEMA],
 			declarations: [FavoritesPageComponent],
-			providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]), MessageService],
+			providers: [provideSupabaseFalso(), provideRouter([]), MessageService],
 		}).compileComponents();
 
 		fixture = TestBed.createComponent(FavoritesPageComponent);

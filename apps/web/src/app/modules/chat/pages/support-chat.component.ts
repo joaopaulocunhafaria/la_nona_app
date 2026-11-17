@@ -1,4 +1,4 @@
-import { AfterViewChecked, Component, ElementRef, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
+import { AfterViewChecked, Component, ElementRef, OnDestroy, OnInit, Signal, ViewChild, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { format } from 'date-fns';
 import { Subscription } from 'rxjs';
@@ -20,6 +20,8 @@ export class SupportChatComponent implements OnInit, OnDestroy, AfterViewChecked
 	readonly mensagens = signal<ChatMessageResponse[]>([]);
 	readonly carregando = signal(true);
 	readonly textoMensagem = signal('');
+	/** Canal de tempo real ativo (exposto no template como `data-tempo-real`). */
+	readonly conectado: Signal<boolean>;
 
 	userId = '';
 	userName = '';
@@ -33,7 +35,9 @@ export class SupportChatComponent implements OnInit, OnDestroy, AfterViewChecked
 		private readonly authService: AuthService,
 		private readonly chatService: ChatService,
 		private readonly notificacoesService: NotificacoesService,
-	) {}
+	) {
+		this.conectado = this.chatService.conectado;
+	}
 
 	ngOnInit(): void {
 		const userIdParam = this.route.snapshot.paramMap.get('userId');

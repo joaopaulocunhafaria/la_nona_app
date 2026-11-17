@@ -45,6 +45,7 @@
 						pButton
 						type="button"
 						icon="pi pi-trash"
+						[attr.aria-label]="'Excluir categoria ' + categoria.name"
 						severity="danger"
 						[text]="true"
 						[disabled]="categoria.itemCount > 0"

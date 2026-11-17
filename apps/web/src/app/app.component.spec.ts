@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { RouterModule } from '@angular/router';
+import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
+import { provideSupabaseFalso } from '../testing/supabase-falso';
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
@@ -8,6 +10,7 @@ describe('AppComponent', () => {
 		await TestBed.configureTestingModule({
 			imports: [RouterModule.forRoot([]), ToastModule],
 			declarations: [AppComponent],
+			providers: [MessageService, provideSupabaseFalso()],
 		}).compileComponents();
 	});
 

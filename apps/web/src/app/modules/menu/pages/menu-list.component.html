@@ -6,6 +6,7 @@
 			type="button"
 			class="-mr-2 flex h-10 w-10 flex-shrink-0 items-center justify-center text-2xl"
 			style="color: var(--text-on-dark)"
+			aria-label="Novo item"
 			(click)="novoItem()"
 		>
 			<i class="pi pi-plus"></i>
@@ -81,7 +82,7 @@
 
 		<div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
 			@for (item of itensFiltrados(); track item.id) {
-				<div class="relative flex cursor-pointer flex-col rounded-xl bg-white shadow" (click)="abrirDetalhe(item)">
+				<div class="relative flex cursor-pointer flex-col rounded-xl bg-white shadow" data-testid="item-cardapio" (click)="abrirDetalhe(item)">
 					<div class="relative h-32 w-full overflow-hidden rounded-t-xl" style="background-color: var(--surface-soft-green)">
 						@if (primeiraImagem(item)) {
 							<img [src]="primeiraImagem(item)" class="h-full w-full object-cover" [alt]="item.name" />
@@ -94,6 +95,7 @@
 						<button
 							type="button"
 							class="absolute top-2 left-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90"
+							[attr.aria-label]="isFavorito(item) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'"
 							(click)="alternarFavorito(item, $event)"
 						>
 							<i
@@ -109,6 +111,7 @@
 								<button
 									type="button"
 									class="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-blue-600"
+									aria-label="Editar item"
 									(click)="editarItem(item, $event)"
 								>
 									<i class="pi pi-pencil text-sm"></i>
@@ -116,6 +119,7 @@
 								<button
 									type="button"
 									class="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-red-600"
+									aria-label="Excluir item"
 									(click)="excluirItem(item, $event)"
 								>
 									<i class="pi pi-times text-sm"></i>
@@ -140,6 +144,7 @@
 									type="button"
 									class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white"
 									style="background-color: var(--secondary-base)"
+									aria-label="Adicionar ao carrinho"
 									(click)="adicionarAoCarrinho(item, $event)"
 								>
 									<i class="pi pi-plus"></i>

@@ -1,4 +1,4 @@
-<div class="chat-shell flex flex-col">
+<div class="chat-shell flex flex-col" [attr.data-tempo-real]="conectado() ? 'conectado' : 'aguardando'">
 	<app-page-header [titulo]="userName" class="flex-shrink-0"></app-page-header>
 
 	@if (carregando()) {
@@ -30,6 +30,7 @@
 			class="min-w-0 flex-1 rounded-full border px-4 py-2"
 			style="border-color: var(--secondary-light)"
 			placeholder="Digite sua mensagem..."
+			aria-label="Mensagem"
 			[ngModel]="textoMensagem()"
 			(ngModelChange)="textoMensagem.set($event)"
 			(keyup.enter)="enviar()"
@@ -38,6 +39,7 @@
 			type="button"
 			class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-white"
 			style="background-color: var(--secondary-dark)"
+			aria-label="Enviar mensagem"
 			(click)="enviar()"
 		>
 			<i class="pi pi-send"></i>
