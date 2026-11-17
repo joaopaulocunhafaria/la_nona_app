@@ -1,11 +1,10 @@
 // Garante que o build de produção (Vercel) aponta para o Supabase de PRODUÇÃO.
 // Roda antes do `ng build` em `npm run build:vercel`; falha o deploy se o environment.ts estiver errado.
-// Ao criar o projeto Supabase de produção, troque PREENCHER pelo project ref (Dashboard > Project Settings).
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const PROJECT_REF_PRODUCAO = 'PREENCHER';
+const PROJECT_REF_PRODUCAO = 'ftkzsqpsppyiakchoinb';
 const URL_PRODUCAO = `https://${PROJECT_REF_PRODUCAO}.supabase.co`;
 
 const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '..');
