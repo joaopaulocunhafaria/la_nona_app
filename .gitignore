@@ -1,6 +1,6 @@
-# Monorepo: regras genéricas para qualquer subprojeto (app/, backend/).
-# Cada subprojeto mantém seu próprio .gitignore com regras específicas
-# (Flutter em app/.gitignore, Maven/Spring Boot em backend/.gitignore).
+# Monorepo: regras genéricas para qualquer subprojeto (app/, apps/, packages/, supabase/).
+# Cada subprojeto pode ter o próprio .gitignore com regras específicas
+# (Flutter em app/.gitignore, Angular em apps/web/.gitignore).
 
 # Miscellaneous
 *.class

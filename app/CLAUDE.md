@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Aviso (2026-11-17):** este app Flutter está **sem backend**. Ele consumia a API Spring Boot, que foi removida quando o projeto
+> migrou para o **Supabase** (ver `../DEVELOPMENT.md` e `../CLAUDE.md`). O conteúdo abaixo descreve a época do Firebase e serve só como
+> referência histórica. O próximo passo é reescrever os services Dart com `supabase_flutter`, reaproveitando o schema, o RLS e as RPCs em
+> `../supabase/migrations`.
+
 ## Project Overview
 
 La Nona is a Flutter restaurant-app client (cardápio/menu, cart, favorites, support chat, admin tools) backed entirely by Firebase (Auth, Firestore, Storage). There is no custom backend — all business logic lives in Dart services under `lib/services` and `lib/data/services` that talk directly to Firebase SDKs.

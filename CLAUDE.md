@@ -2,79 +2,114 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Repository layout
+## Visão geral
 
-Monorepo for **La Nona**, a restaurant app (cardápio/menu, cart, favorites, support chat, admin tools, usage telemetry). Three independent subprojects share one backend:
+**La Nona** é um app de restaurante (cardápio, carrinho, favoritos, chat de suporte, área administrativa e telemetria de uso) em monorepo
+com npm workspaces. O backend é o **Supabase** (BaaS): Postgres + RLS, Auth, Storage, Realtime. Não existe servidor próprio.
 
-| Dir | Stack | Role |
-|---|---|---|
-| `backend/` | Java 17, Spring Boot 3.5, Maven, PostgreSQL + Flyway, Spring Security + JWT, STOMP WebSocket, AWS S3 | REST API at `/api/**`, chat over SockJS/STOMP at `/ws` |
-| `app/` | Flutter (Dart ^3.11), `provider`, `http`, `stomp_dart_client` | Mobile/desktop client |
-| `web/` | Angular 19 (NgModule-based, `standalone: false`), PrimeNG 19 + Tailwind 4, `@stomp/stompjs` | Web client (customer + admin) |
+| Pasta             | O que é                                                                                         |
+| ----------------- | ----------------------------------------------------------------------------------------------- |
+| `apps/web`        | Front-end **Angular 19.2** (`@lanona/web`): NgModules, PrimeNG 19, Tailwind 4, `@supabase/supabase-js` |
+| `packages/shared` | `@lanona/shared`: `database.types.ts` (**gerado**) + aliases de domínio em `models.ts`          |
+| `supabase/`       | `config.toml`, `migrations/`, `seed.sql`, `tests/database/` (pgTAP), `functions/` (Deno)         |
+| `app/`            | App Flutter **legado**. Ainda fala com a API Spring Boot, que foi removida, então **não funciona** até ser migrado para `supabase_flutter` |
 
-**Stale docs:** some docs describe the time before the Firebase→API migration. `DEVELOPMENT.md`, `app/CLAUDE.md`, `app/GEMINI.md`, `app/MODELS.md`, `app/CHAT.md` and `backend/README.md` all say the Flutter app uses Firebase and that images are stored as base64 in the database. Neither is true any more. The Flutter app now uses the Spring API only (Firebase is gone from `pubspec.yaml`), and images are uploaded to S3, with only the URL stored. The coding standards in those docs still apply. `backend/SPRINGBOOT.md` §11 records implementation decisions and bugs that were fixed. `web/PATTERNS.md` is the web's convention guide, though some of it is copied from another project: `PermissoesService`, the cpf/cnpj pipes and `_formularios/` don't exist here.
+- Node **22** (`nvm use`), npm 10. Não atualize a versão do Angular nem migre para standalone/zoneless sem pedido explícito.
+- O Supabase local usa as **portas 553xx** (API 55321, DB 55322, Studio 55323, Mailpit 55324) para não colidir com outros projetos.
 
-User-facing text is **Portuguese (pt-BR)** in all three subprojects. Code identifiers mix English and Portuguese, and the web side leans Portuguese (`_modelos/`, `conectar()`, `notificacoes.service.ts`). Commit messages follow `tipo(escopo): descrição`, e.g. `feat(cardapio): ...`, `fix(backend): ...`.
+## Comandos
 
-## Commands
-
-### Backend (`backend/`)
 ```bash
-docker compose up -d                 # local Postgres 16 (db la_nona, user/pass icismep)
-./mvnw spring-boot:run               # http://localhost:8080, profile 'dev' by default; Swagger at /swagger-ui.html
-./mvnw test                          # unit (Mockito) + integration (Testcontainers — needs Docker)
-./mvnw test -Dtest=CartServiceTest   # single test class
-./mvnw test -Dtest=CartIntegrationTest#methodName   # single test method
-./mvnw verify                        # tests + package
+nvm use && npm install
+npm run db:start          # Supabase local (Docker); db:status mostra URLs e chaves
+npm start                 # http://localhost:4200 (configuração development, Supabase local)
+npm run build             # produção  |  npm run build-homolog -w @lanona/web
+npm run build:vercel      # build do deploy: falha se environment.ts não apontar para o Supabase de produção
+npm run typecheck         # shared + app + e2e
+npm run test:ci -w @lanona/web                         # Karma headless (todos)
+npm run test:ci -w @lanona/web -- --include src/app/modules/cart   # Karma de uma pasta/arquivo
+npm run db:test                                        # pgTAP (todos)
+npx supabase test db supabase/tests/database/40_chat.test.sql      # pgTAP de um arquivo
+npm run e2e                                            # Playwright (sobe o ng serve na porta 4310 sozinho)
+npm run e2e -- e2e/carrinho.spec.ts -g "finalizar"     # E2E de um arquivo / teste
+npm run test:tudo         # typecheck + Karma + pgTAP + E2E
+npm run db:migration <nome> && npm run db:reset && npm run db:types   # mudança de schema
+npm run format            # Prettier (também no pre-commit via husky + lint-staged)
 ```
-The production image (`Dockerfile`, deployed on Render) builds with `-DskipTests`. The `prod` profile is in `application-prod.yml`, and its secrets come from env vars (`DB_URL`, `JWT_SECRET`, `AWS_*`, `CORS_ALLOWED_ORIGINS`, `GOOGLE_CLIENT_ID`).
 
-### Flutter app (`app/`)
-```bash
-flutter pub get
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080   # Android emulator; default is a hardcoded LAN IP in lib/data/api/api_config.dart
-flutter analyze
-flutter test                                   # all tests
-flutter test test/widget_test.dart             # single file
-```
-`--dart-define=GOOGLE_SERVER_CLIENT_ID=...` turns on Google sign-in. `test/widget_test.dart` holds real unit tests that parse the backend's DTO JSON into models. `test/api_integration_test.dart` needs a running backend.
+O Karma precisa de Chrome. Se não for encontrado, use `CHROME_BIN=/usr/bin/google-chrome`. Os E2E exigem o Supabase local no ar (`db:start`; rode `db:reset` se o schema mudou).
 
-### Web (`web/`)
-```bash
-npm start              # ng serve on 0.0.0.0:4200; proxy.conf.json forwards /api and /ws to localhost:8080
-npm run build          # runs scripts/set-env.js first (prebuild hook)
-npm run build-homolog
-npm test               # Karma/Jasmine
-npx ng test --include src/app/modules/cart/pages/cart-page.component.spec.ts   # single spec
-```
-`src/environments/environment.ts` is **generated** by `scripts/set-env.js` from `API_BASE_URL` and `GOOGLE_CLIENT_ID` at build time (Vercel), so don't edit it by hand. When those env vars are missing, it falls back to the relative `/api` and `/ws` paths. Prettier (tabs, width 140, tailwind plugin) runs via lint-staged.
+## Arquitetura
 
-## Backend architecture
+### Banco (`supabase/migrations`, uma migration por domínio)
 
-Layers are always `controller → service → repository → entity`. Controllers deal only in DTOs: Java `record`s in `dto/request` and `dto/response` with Bean Validation, and responses are built through a static `from(Entity)`. Business rules, plus any authorization that depends on data (e.g. "only the thread owner or an admin"), live in `service/` and throw `ForbiddenException`.
+- `profiles` é 1:1 com `auth.users` e é criado pelo trigger `criar_perfil_novo_usuario`. `role` (`cliente|entregador|admin`) é a única
+  fonte de autorização. `public.eh_admin()` lê a tabela (não o JWT), então uma promoção de cargo vale na hora, sem novo login.
+- **Leitura** acontece por RLS direto nas tabelas. **Escrita com regra de negócio** acontece por RPCs `security definer` que reproduzem as validações e
+  mensagens pt-BR do antigo backend: `salvar_endereco`, `salvar_item_cardapio` (item + imagens numa transação), `adicionar_ao_carrinho`
+  (upsert somando), `enviar_mensagem_chat` / `marcar_chat_lido`, `admin_buscar_usuarios` / `admin_alterar_cargo`, as RPCs de ingestão
+  de telemetria (abertas a `anon`) e as `telemetria_*` (só admin, devolvem `jsonb` já no formato das interfaces do front).
+- As tabelas de telemetria não têm grant direto: tudo passa pelas RPCs.
+- O total do carrinho é sempre calculado pelo preço **atual** do item (join), nunca por snapshot. Um trigger bloqueia item `INDISPONIVEL`.
+- `chat_messages` e `chat_threads` estão na publicação `supabase_realtime`, e o Realtime aplica o RLS a cada assinante.
+- Storage: buckets públicos `cardapio` (escrita só admin, caminho `itens/<uuid>.<ext>`) e `fotos-perfil` (escrita só em `<auth.uid()>/`).
+  O banco guarda a URL pública, e em `menu_item_images` também o `storage_path`, para remover órfãs.
 
-Rules that aren't obvious from reading a single file:
-- **Schema**: Flyway owns the schema (`ddl-auto: validate`). Migrations are `db/migration/V{yyyyMMddHHmmss}__desc.sql`. Never edit an applied migration; add a new one. All tables live in the dedicated schema `la_nona_api`, never `public`, because the Postgres instance is shared with other projects. Native `@Query` SQL resolves tables via `search_path`, which Hikari's `connection-init-sql` sets.
-- **Errors**: the `ApiException` hierarchy (`BadRequest`/`Conflict`/`Unauthorized`/`Forbidden`/`ResourceNotFound`/`StorageException`) is translated only by `GlobalExceptionHandler`. `FallbackErrorController` plus the `server.error.*` flags make sure stack traces and paths never leak to clients.
-- **Security**: stateless JWT (access token plus a rotating, revocable refresh token in `refresh_tokens`). Authorization happens twice: coarsely per route in `SecurityConfig` and finely with `@PreAuthorize("hasRole('ADMIN')")`. An anonymous request to an admin endpoint returning **403 rather than 401** is intended, so leave it. Roles are stored lowercase (`'admin'`/`'cliente'`) through `RoleConverter`. Use an `AttributeConverter` whenever the DB value isn't the enum's `name()`. The first admin is promoted by hand with SQL (see `backend/README.md`).
-- **Entities**: Lombok `@Builder` with `@Builder.Default` on every field that has a default. IDs use `GenerationType.UUID`. Use `saveAndFlush` whenever the response reads back `@CreationTimestamp`/`@UpdateTimestamp` in the same transaction.
-- **Images**: `S3StorageService` uploads to S3 and the DB stores only the public URL (`menu_item_images.url`). Integration tests mock `AmazonS3` in `AbstractIntegrationTest`.
-- **Menu item status**: the `MenuItemStatus` enum (`DISPONIVEL`, `FEITO_NA_HORA`, `VERIFICAR_DISPONIBILIDADE`, `INDISPONIVEL`) replaced the old `available` boolean. Use `isOrderable()` to decide whether an item can go into the cart. Cart totals always use the item's *current* price.
-- **Chat**: REST handles threads, paginated history and unread counts. `websocket/ChatWebSocketController` handles real-time STOMP, authenticated with the JWT on CONNECT (`WebSocketConfig`).
-- **Telemetry**: clients send an `X-Client-Platform` header (`MOBILE`/web) and post heartbeats, menu views and item views (`TelemetryController`). Admins read the aggregates from `TelemetryAdminController`, which uses native time-bucket queries and the projections in `repository/projection`.
-- **Tests**: integration tests extend `AbstractIntegrationTest`. It uses a singleton Testcontainers Postgres (a `static` field started in a `static {}` block with `@ServiceConnection`), and each test runs in a transaction that is rolled back. Don't switch it to `@Testcontainers`/`@Container`: that restarts the container for every class and breaks the cached Spring context.
+### Front (`apps/web/src/app`)
 
-## Flutter app architecture
+- `services/supabase.service.ts` é o cliente tipado único (`SupabaseClient<Database>`). O acesso ao banco acontece **só em serviços**, nunca em componentes.
+- `utils/_metodos/supabase.ts`:
+  - `deSupabase()` transforma `{data, error}` em um Observable que lança o erro;
+  - `dadosOuErro()` faz o mesmo para fluxos async;
+  - `mensagemErro()` repassa a mensagem pt-BR das RPCs e traduz 23505/23503;
+  - `escaparLike()` é usado em todo `ilike`.
+- Os serviços mantêm a API pública em `Observable` e mapeiam as linhas do PostgREST (`snake_case`) para os modelos camelCase das telas. Exemplos:
+  `itemDaLinha` + `SELECT_ITEM_CARDAPIO` em `menu-item.service.ts`, reusados por carrinho e favoritos, e `usuarioDoPerfil` em
+  `auth.models.ts`.
+- Auth:
+  - `AuthService` usa Supabase Auth (`signInWithPassword`, `signUp`, `signInWithIdToken` para Google) e expõe os signals `usuario` /
+    `isAuthenticated` / `isAdmin`;
+  - `provideAppInitializer` aguarda `sessaoPronta()` antes da primeira tela;
+  - `AuthGuard` / `AdmGuard` também aguardam;
+  - não há interceptor HTTP. O `HttpClient` só existe para APIs externas (ViaCEP).
+- `ChatService` mantém um canal Realtime por conversa (`postgres_changes` filtrado por `thread_user_id`) e um canal de conversas para o admin.
+  A tela de chat expõe `data-tempo-real="conectado"` quando o canal assinou, e os E2E esperam por esse atributo.
+- `TelemetryService` chama as RPCs de ingestão. No `pagehide`/aba oculta usa `fetch(..., { keepalive: true })`, porque o `sendBeacon` não
+  envia `apikey`/`Authorization`.
+- Imagens são comprimidas no navegador (`utils/_metodos/imagem.ts`) antes do upload.
+- Convenções do front (detalhes em `apps/web/PATTERNS.md`):
+  - NgModules (`standalone: false`), lazy loading e injeção pelo construtor;
+  - estado em signals;
+  - models/services locais à feature (`modules/<feature>/_modelos`, `_services`);
+  - PrimeNG + Tailwind;
+  - UI em pt-BR;
+  - Prettier com tabs (largura 3) e `printWidth` 140.
 
-- `main.dart` restores the persisted session (`SessionStore`, which keeps the JWT in shared_preferences), starts `TelemetryService`, and then builds a `MultiProvider`. In that tree, `UserProfileService` feeds `AuthService` (proxy). `CartService` and `FavoritesService` are proxies of `AuthService` that load or clear themselves through `onAuthChanged`. `ChatService` holds a single shared STOMP connection.
-- `lib/data/api/api_client.dart` (singleton `ApiClient`) is the one HTTP entry point. It adds the Bearer token and the `X-Client-Platform` header, applies a 30s timeout, turns error bodies into `ApiException` using the backend's `message` field, and calls `onUnauthorized` on 401/403 so `AuthService` can clear the session. It deliberately mirrors the web `AuthInterceptor`.
-- `lib/services/` holds the app-level state and business services that the UI consumes. `lib/data/services/` holds lower-level data access (the menu catalog). Models live in `lib/data/models/` and `lib/models/`, each with a `fromJson` that matches a backend DTO.
-- Navigation goes through `Navigator` directly, with no named routes. `widgets/auth_check.dart` is the only place that chooses between `WelcomePage` and `HomePage`. A first login is blocked until the address onboarding is done (ViaCEP lookup, `onboardingCompleted`). In the UI, `isAdmin` is derived from the backend `role`.
-- Images are compressed on the client (quality 80) before upload.
+### Ambientes e deploy
 
-## Web architecture
+- Ambientes, trocados por `fileReplacements`, todos com a forma `{ production, supabaseUrl, supabaseKey, googleClientId }`:
+  - `environment.development.ts`: Supabase local, com a anon key demo do CLI;
+  - `environment.homolog.ts`: placeholders;
+  - `environment.ts`: produção. Usa a URL **base** `https://<ref>.supabase.co`, sem `/rest/v1`, e a chave `sb_publishable_…`.
+- `scripts/verificar-ambiente-producao.mjs` roda antes do build da Vercel e barra o deploy se o environment de produção estiver errado. Hoje o
+  project ref ainda é o placeholder `PREENCHER`, então `build:vercel` **falha de propósito** até o projeto de produção ser criado.
+- A Vercel lê o `vercel.json` da raiz. Root Directory = raiz do repo, saída `apps/web/dist/la-nona-web/browser`, fallback SPA.
+- Nunca coloque a `service_role`/secret key no front. Ela só é usada pelos E2E (local, lida de `supabase status` no `globalSetup`).
 
-- Every feature is a lazy-loaded NgModule (`app-routing.module.ts`). `AuthGuard` checks for the token in localStorage, and `AdmGuard` protects the `admin/*` routes (users, telemetria, configuracoes).
-- **Feature-local rule**: a feature's models and services go inside it (`modules/<feature>/_modelos/`, `modules/<feature>/_services/`). The global `src/app/services/` is only for cross-cutting concerns: auth, `auth.interceptor.ts`, chat (STOMP), telemetry, local storage, notifications.
-- `AuthInterceptor` adds the Bearer token to every request except the `rotasSemAuth` routes, and logs the user out on 401/403.
-- Conventions (from `web/PATTERNS.md`): no code comments, strict typing with no `any`, Signals for local component state, PrimeNG for components and Tailwind for layout, `decimal.js` for money, `date-fns` for dates. The PrimeNG theme preset is in `TemaApp.ts`, and `AppModule` registers pt-BR locale/BRL.
+## Regras para mudanças
+
+- **Schema** só muda por migration nova (nunca edite uma já aplicada nem o banco remoto à mão). Depois: `db:reset` + `db:types`, e adicione o
+  alias em `packages/shared/src/models.ts`. `database.types.ts` é gerado, então não o edite.
+- Toda tabela nova em `public`: RLS habilitado, policy explícita, `revoke all` seguido de `grant` mínimo. Toda função: `set search_path = ''`
+  (as `security definer` com nomes qualificados). O `00_seguranca.test.sql` verifica isso automaticamente.
+- Erros de negócio nas RPCs: `raise exception '<mensagem pt-BR>' using errcode = '22023'`, com `42501` para permissão e `P0002` para não encontrado.
+- Primeiro admin: depois de se cadastrar, rode `update public.profiles set role = 'admin' where email = '...';` (local: Studio em
+  http://127.0.0.1:55323).
+- Testes (rode só os relacionados à mudança e, no fim, `npm run typecheck`):
+  - **pgTAP** em `supabase/tests/database/NN_<dominio>.test.sql`: simule o papel com `set local role authenticated` +
+    `set local request.jwt.claims = '{"sub":"<uuid>","role":"authenticated"}'`, e use `throws_ok` com o código do erro.
+  - **Playwright** em `apps/web/e2e/`: importe `test`/`expect` de `./apoio/fixtures`. A fixture `banco` (service role local) cria usuários,
+    itens e categorias e apaga tudo no fim, e a fixture automática `semErrosJs` falha o teste quando a página lança um erro JS. Cada teste cria os próprios dados com
+    `unico()`/`emailUnico()`.
+  - **Karma**: specs ao lado do arquivo. Use `provideSupabaseFalso(dados)` (`src/testing/supabase-falso.ts`) em vez de rede.
+- Commits no padrão `tipo(escopo): descrição` (`feat(cardapio): ...`, `fix(chat): ...`).

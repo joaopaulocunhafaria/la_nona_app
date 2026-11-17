@@ -1,44 +1,47 @@
-# CLAUDE.md
+# PATTERNS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Padrões do front Angular (`@lanona/web`). As regras do monorepo, do Supabase e dos testes estão no `CLAUDE.md` da raiz.
 
 ## Commands
 
 ```bash
-npm start              # dev server with proxy (http://localhost:4200)
+npm start              # dev server (configuração development, Supabase local em http://127.0.0.1:55321)
 npm run build          # production build
 npm run build-homolog  # homologation build
-npm test               # run unit tests (Karma/Jasmine)
+npm test               # unit tests (Karma/Jasmine); test:ci for headless
+npm run e2e            # Playwright E2E against the local Supabase
 ```
- 
+
 ### Guards and auth
 
-`AuthGuard` checks `localStorage.getItem('token')` and redirects to `/login`. `AdmGuard` checks `usuario.funcaoSistema` against `route.data.funcaoSistema` — the user role is stored in `localStorage` as `usuario` (JSON).
-
-`AuthInterceptor` attaches `Authorization: Bearer <token>` to all requests except those matching `rotasSemAuth` paths, and auto-logs-out on 401/403.
-
-`PermissoesService` provides fine-grained feature permissions via `has(permission, acao?)` — `ADMINISTRADOR` type bypasses all checks.
+Auth is Supabase Auth. `AuthService` exposes the signals `usuario`, `isAuthenticated` and `isAdmin` (from `profiles.role`), and
+`sessaoPronta()` resolves once the persisted session is restored (awaited by `provideAppInitializer` and by the guards). `AuthGuard`
+redirects visitors to `/login?returnUrl=...`; `AdmGuard` sends non-admins to `/home` with an "Acesso negado" toast. There is no HTTP
+interceptor: supabase-js attaches the session token itself, and `HttpClient` is only used for external APIs (ViaCEP).
 
 ### Environments
 
-Three configurations: `environment.ts` (production), `environment.development.ts` (dev), `environment.homolog.ts` (homolog). All API URLs are path-relative and rely on the dev proxy or reverse proxy in production.
+Three configurations: `environment.ts` (production), `environment.development.ts` (local Supabase), `environment.homolog.ts`, each with
+`{ production, supabaseUrl, supabaseKey, googleClientId }`. `supabaseUrl` is the project BASE URL (no `/rest/v1`) and `supabaseKey` is the
+publishable/anon key, never the service_role/secret key.
 
 ### Shared utilities
 
 `src/app/utils/` contains global shared code:
-- `_pipes/` — `brl.pipe.ts`, `cpf.pipe.ts`, `cnpj.pipe.ts`, `date-br.pipe.ts`, `telefone.pipe.ts`, `truncate.pipe.ts`, `safe.pipe.ts`
-- `_models/` — shared interfaces (`page.d.ts`, `fornecedor.d.ts`, `prefeitura.d.ts`, etc.)
-- `_formularios/` — shared form validators
-- `_constantes/constantes.ts` — global constants
-- `data-utils.ts` — date helper functions
+- `_metodos/supabase.ts` — `deSupabase`, `dadosOuErro`, `mensagemErro`, `codigoErro`, `escaparLike`
+- `_metodos/imagem.ts` — client-side image compression before uploads
+- `_pipes/` — `brl.pipe.ts`, `truncate.pipe.ts`
+- `_constantes/constantes.ts` — global constants (UFs, roles)
 
 ### Feature-local models and services (critical rule)
 
-Models, enums, and services belong **inside their feature module**, never in the global `src/app/services/` or `src/app/utils/_models/`. Use:
+Models, enums, and services belong **inside their feature module**, never in the global `src/app/services/` or `src/app/utils/`. Use:
 - `src/app/modules/[module]/[feature]/_modelos/` for interfaces and enums
 - `src/app/modules/[module]/[feature]/_services/` for feature-specific services
 
-Global `src/app/services/` is reserved for cross-cutting concerns: `AuthService`, `AuthInterceptor`, `PermissoesService`, `CryptoService`, `DrawerService`, `LocalStorageService`, `NotificacoesService`.
+Global `src/app/services/` is reserved for cross-cutting concerns: `SupabaseService`, `AuthService`, `UsuarioService`, `ChatService`,
+`TelemetryService`, `AuthPromptService`, `NotificacoesService`. Row types come from `@lanona/shared` (generated); services map PostgREST rows
+(`snake_case`) to the camelCase models used by the templates.
 
 ### Coding conventions
 
@@ -121,13 +124,12 @@ Regardless of domain, a new app should wire up:
 - `providePrimeNG(...)` with the custom theme + full Portuguese translation object (copy from this project's `app.module.ts` and adjust only the theme).
 - `MessageService` (PrimeNG toasts) + `ToastModule` import.
 - `provideNgxMask()` / `provideEnvironmentNgxMask()` if input masks are needed.
-- `provideHttpClient(withInterceptorsFromDi())` + register the new app's `AuthInterceptor` via `HTTP_INTERCEPTORS`.
+- A single typed backend client service (here `SupabaseService`) and, if the backend needs it, an app initializer that restores the session before the first screen. Only add an HTTP interceptor when talking to a token-based REST API.
 
 ### 8. Cross-cutting services and guards to recreate
 
 These are domain-agnostic and should exist in every app built this way, under `src/app/services/` and `src/app/guards/`:
-- `AuthService` — login/logout, token storage, `isAuthenticated()`.
-- `AuthInterceptor` — attaches `Authorization: Bearer <token>`; maintains a `rotasSemAuth` allowlist of paths skipped (public endpoints, login, password recovery); auto-logs-out on 401/403.
+- `AuthService` — login/logout and session signals (`isAuthenticated()`), backed by the BaaS auth client.
 - `AuthGuard` — `CanActivate` checking `isAuthenticated()`, redirecting to `/login`; optionally handle a forced first-access password reset flow.
 - A role/permission guard (`AdmGuard`-equivalent) — reads the logged-in user from `localStorage`, compares `route.data['funcaoSistema']` (or equivalent role key) against the user's role, shows a PrimeNG toast and redirects on failure.
 - `PermissoesService` — fine-grained `has(permission, acao?)` checks, with an admin/superuser role bypassing all checks.
@@ -156,11 +158,14 @@ Within each feature module, replicate the local-first pattern: `_modelos/` (or `
 
 ### 10. Environments
 
-Define `environment.ts` (production, absolute API URLs), `environment.development.ts` (path-relative `/api/...`, `/auth/...` proxied via `proxy.conf.json`), `environment.homolog.ts`. Keep all API URLs path-relative outside of the production file so the dev proxy / reverse proxy can resolve them.
+Define `environment.ts` (production), `environment.development.ts` (local backend, e.g. Supabase CLI on 127.0.0.1) and `environment.homolog.ts`,
+swapped via `fileReplacements`. For a BaaS, keep only public values here (project URL + publishable key) and guard the production build
+with a script that fails when `environment.ts` does not point to production (see `scripts/verificar-ambiente-producao.mjs`).
 
-### 11. `proxy.conf.json`
+### 11. Dev proxy (only for a self-hosted REST API)
 
-Mirror the `/api` → backend and `/auth` → backend proxy pattern, each with `changeOrigin: true`, `secure: false`, and a `pathRewrite` stripping the prefix, pointing at the new app's local backend port.
+If the app talks to its own REST API instead of a BaaS, add a `proxy.conf.json` mapping `/api` to the local backend (`changeOrigin: true`,
+`secure: false`) and keep API URLs path-relative outside of production.
 
 ### 12. Verify the bootstrap
 
