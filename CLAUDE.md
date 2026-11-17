@@ -91,8 +91,9 @@ O Karma precisa de Chrome. Se não for encontrado, use `CHROME_BIN=/usr/bin/goog
   - `environment.development.ts`: Supabase local, com a anon key demo do CLI;
   - `environment.homolog.ts`: placeholders;
   - `environment.ts`: produção. Usa a URL **base** `https://<ref>.supabase.co`, sem `/rest/v1`, e a chave `sb_publishable_…`.
-- `scripts/verificar-ambiente-producao.mjs` roda antes do build da Vercel e barra o deploy se o environment de produção estiver errado. Hoje o
-  project ref ainda é o placeholder `PREENCHER`, então `build:vercel` **falha de propósito** até o projeto de produção ser criado.
+- Produção: projeto Supabase `ftkzsqpsppyiakchoinb`. `scripts/verificar-ambiente-producao.mjs` roda antes do build da Vercel e barra o
+  deploy se `environment.ts` não apontar exatamente para ele (URL base + `sb_publishable_…`). Passo a passo em `DEPLOY.md`.
+- Mudança de schema em produção: `npm run db:push` **antes** do merge na `main` (o push na `main` publica o front na Vercel).
 - A Vercel lê o `vercel.json` da raiz. Root Directory = raiz do repo, saída `apps/web/dist/la-nona-web/browser`, fallback SPA.
 - Nunca coloque a `service_role`/secret key no front. Ela só é usada pelos E2E (local, lida de `supabase status` no `globalSetup`).
 

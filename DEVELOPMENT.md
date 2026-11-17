@@ -1,7 +1,7 @@
 # DEVELOPMENT.md
 
 Documentação central do monorepo **La Nona**: estado atual de cada subprojeto e onde está a documentação detalhada. As regras de
-arquitetura e código ficam no [`CLAUDE.md`](./CLAUDE.md); setup, scripts e deploy no [`README.md`](./README.md).
+arquitetura e código ficam no [`CLAUDE.md`](./CLAUDE.md); setup e scripts no [`README.md`](./README.md); deploy no [`DEPLOY.md`](./DEPLOY.md).
 
 ---
 
@@ -43,7 +43,7 @@ serve só como referência histórica.
 
 ## 4. Pendências
 
-1. **Projeto Supabase de produção**: criar, `supabase link` + `npm run db:push`, preencher `environment.ts` e o project ref em
-   `scripts/verificar-ambiente-producao.mjs` (passo a passo no README). Até lá, `npm run build:vercel` falha de propósito.
+1. **Deploy**: o projeto Supabase de produção (`ftkzsqpsppyiakchoinb`) já tem o schema e o front aponta para ele. Falta criar o projeto
+   na Vercel e ajustar Auth (confirmação de e-mail, Site URL) no painel do Supabase, como descrito em [`DEPLOY.md`](./DEPLOY.md).
 2. **App Flutter**: migrar para `supabase_flutter` (seção 3).
 3. **Pedido/Checkout**: ainda não existe. "Finalizar Pedido" envia o resumo do carrinho no chat de suporte e esvazia o carrinho.
