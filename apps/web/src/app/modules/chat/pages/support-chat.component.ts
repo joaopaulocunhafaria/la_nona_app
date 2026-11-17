@@ -5,6 +5,8 @@ import { Subscription } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 import { ChatMessageResponse } from '../../../services/chat.models';
 import { ChatService } from '../../../services/chat.service';
+import { NotificacoesService } from '../../../services/notificacoes.service';
+import { mensagemErro } from '../../../utils/_metodos/supabase';
 
 @Component({
 	selector: 'app-support-chat',
@@ -30,6 +32,7 @@ export class SupportChatComponent implements OnInit, OnDestroy, AfterViewChecked
 		private readonly route: ActivatedRoute,
 		private readonly authService: AuthService,
 		private readonly chatService: ChatService,
+		private readonly notificacoesService: NotificacoesService,
 	) {}
 
 	ngOnInit(): void {
@@ -40,16 +43,21 @@ export class SupportChatComponent implements OnInit, OnDestroy, AfterViewChecked
 
 		this.chatService.conectar();
 
-		this.chatService.getMessages(this.userId).subscribe((pagina) => {
-			this.mensagens.set(pagina.content);
-			this.carregando.set(false);
-			this.marcarComoLida();
+		this.chatService.getMessages(this.userId).subscribe({
+			next: (pagina) => {
+				// Mensagens que chegaram em tempo real durante o carregamento são preservadas (sem duplicar).
+				const ids = new Set(pagina.content.map((mensagem) => mensagem.id));
+				this.mensagens.set([...pagina.content, ...this.mensagens().filter((mensagem) => !ids.has(mensagem.id))]);
+				this.carregando.set(false);
+				this.marcarComoLida();
+			},
+			error: (erro) => {
+				this.carregando.set(false);
+				this.notificacoesService.erro(mensagemErro(erro, 'Não foi possível carregar as mensagens.'));
+			},
 		});
 
-		this.inscricao = this.chatService.mensagensDaThread(this.userId).subscribe((mensagem) => {
-			this.mensagens.set([...this.mensagens(), mensagem]);
-			this.marcarComoLida();
-		});
+		this.inscricao = this.chatService.mensagensDaThread(this.userId).subscribe((mensagem) => this.adicionarMensagem(mensagem));
 	}
 
 	ngOnDestroy(): void {
@@ -63,8 +71,16 @@ export class SupportChatComponent implements OnInit, OnDestroy, AfterViewChecked
 		}
 	}
 
+	private adicionarMensagem(mensagem: ChatMessageResponse): void {
+		if (this.mensagens().some((existente) => existente.id === mensagem.id)) {
+			return;
+		}
+		this.mensagens.set([...this.mensagens(), mensagem]);
+		this.marcarComoLida();
+	}
+
 	private marcarComoLida(): void {
-		this.chatService.marcarComoLida(this.userId, this.isAdminView ? 'admin' : 'user').subscribe();
+		this.chatService.marcarComoLida(this.userId, this.isAdminView ? 'admin' : 'user').subscribe({ error: () => undefined });
 	}
 
 	ehMinha(mensagem: ChatMessageResponse): boolean {
@@ -80,7 +96,13 @@ export class SupportChatComponent implements OnInit, OnDestroy, AfterViewChecked
 		if (!texto) {
 			return;
 		}
-		this.chatService.enviarMensagem(this.userId, texto);
 		this.textoMensagem.set('');
+		this.chatService.enviarMensagem(this.userId, texto).subscribe({
+			next: (mensagem) => this.adicionarMensagem(mensagem),
+			error: (erro) => {
+				this.textoMensagem.set(texto);
+				this.notificacoesService.erro(mensagemErro(erro, 'Não foi possível enviar a mensagem.'));
+			},
+		});
 	}
 }

@@ -117,7 +117,8 @@ export class MenuItemService {
 
 			const itemId = dadosOuErro(
 				await this.supabaseService.client.rpc('salvar_item_cardapio', {
-					p_id: id ?? undefined,
+					// null = novo item (o tipo gerado não marca o parâmetro como opcional).
+					p_id: id as string,
 					p_dados: {
 						name: request.name,
 						description: request.description,

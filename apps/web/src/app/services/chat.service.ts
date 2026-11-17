@@ -1,118 +1,167 @@
-import { HttpClient } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
-import { Client, IMessage } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
-import { Observable, Subject } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { RealtimeChannel } from '@supabase/supabase-js';
+import type { ConversaChat, MensagemChat } from '@lanona/shared';
+import { from, map, Observable, Subject } from 'rxjs';
+import { dadosOuErro, deSupabase } from '../utils/_metodos/supabase';
 import { ChatMessagePage, ChatMessageResponse, ChatThreadResponse } from './chat.models';
-import { LocalStorageService } from './local-storage.service';
+import { SupabaseService } from './supabase.service';
 
+function mensagemDaLinha(linha: MensagemChat): ChatMessageResponse {
+	return { id: linha.id, senderId: linha.sender_id, text: linha.text, isAdmin: linha.is_admin, sentAt: linha.sent_at };
+}
+
+function conversaDaLinha(linha: ConversaChat & { profiles?: { name: string } | null }): ChatThreadResponse {
+	return {
+		userId: linha.user_id,
+		userName: linha.profiles?.name || 'Cliente',
+		lastMessage: linha.last_message,
+		updatedAt: linha.updated_at,
+		adminUnreadCount: linha.admin_unread_count,
+		userUnreadCount: linha.user_unread_count,
+	};
+}
+
+/**
+ * Chat de suporte via Supabase: leitura com RLS (dono da conversa ou admin), envio pela RPC
+ * `enviar_mensagem_chat` e tempo real com canais Realtime (`postgres_changes`).
+ */
 @Injectable({ providedIn: 'root' })
 export class ChatService {
-	private readonly baseUrl = `${environment.apiUrl}/chat`;
-	private client: Client | null = null;
-	private readonly threadSubjects = new Map<string, Subject<ChatMessageResponse>>();
-	private readonly adminThreadsSubject = new Subject<ChatThreadResponse>();
-	private readonly aoConectarFila: Array<() => void> = [];
+	private readonly canaisDeThread = new Map<string, { canal: RealtimeChannel; subject: Subject<ChatMessageResponse> }>();
+	private canalAdmin: { canal: RealtimeChannel; subject: Subject<ChatThreadResponse> } | null = null;
 
 	readonly conectado = signal(false);
 
-	constructor(
-		private readonly http: HttpClient,
-		private readonly localStorageService: LocalStorageService,
-	) {}
+	constructor(private readonly supabaseService: SupabaseService) {}
 
+	/** Os canais são abertos sob demanda; aqui só garantimos que o Realtime usa o token da sessão atual. */
 	conectar(): void {
-		if (this.client?.active) {
-			return;
-		}
-
-		const token = this.localStorageService.getToken();
-		if (!token) {
-			return;
-		}
-
-		this.client = new Client({
-			webSocketFactory: () => new SockJS(environment.wsUrl),
-			connectHeaders: { Authorization: `Bearer ${token}` },
-			reconnectDelay: 5000,
-			onConnect: () => {
-				this.conectado.set(true);
-				this.client?.subscribe('/topic/chat.admin.threads', (message: IMessage) => {
-					this.adminThreadsSubject.next(JSON.parse(message.body) as ChatThreadResponse);
-				});
-				this.aoConectarFila.splice(0).forEach((acao) => acao());
-			},
-			onDisconnect: () => this.conectado.set(false),
-			onWebSocketClose: () => this.conectado.set(false),
+		this.supabaseService.client.auth.getSession().then(({ data }) => {
+			if (data.session) {
+				this.supabaseService.client.realtime.setAuth(data.session.access_token);
+			}
 		});
-
-		this.client.activate();
 	}
 
 	desconectar(): void {
-		this.client?.deactivate();
-		this.client = null;
+		for (const { canal, subject } of this.canaisDeThread.values()) {
+			subject.complete();
+			this.supabaseService.client.removeChannel(canal);
+		}
+		this.canaisDeThread.clear();
+		if (this.canalAdmin) {
+			this.canalAdmin.subject.complete();
+			this.supabaseService.client.removeChannel(this.canalAdmin.canal);
+			this.canalAdmin = null;
+		}
 		this.conectado.set(false);
-		this.threadSubjects.clear();
-		this.aoConectarFila.length = 0;
 	}
 
-	private executarQuandoConectado(acao: () => void): void {
-		if (this.client?.connected) {
-			acao();
-		} else {
-			this.aoConectarFila.push(acao);
-		}
-	}
-
+	/** Novas mensagens da conversa do cliente `userId`, em tempo real. */
 	mensagensDaThread(userId: string): Observable<ChatMessageResponse> {
-		if (!this.threadSubjects.has(userId)) {
-			this.threadSubjects.set(userId, new Subject<ChatMessageResponse>());
-			this.executarQuandoConectado(() => {
-				this.client?.subscribe(`/topic/chat.${userId}`, (message: IMessage) => {
-					this.threadSubjects.get(userId)?.next(JSON.parse(message.body) as ChatMessageResponse);
-				});
-			});
+		let registro = this.canaisDeThread.get(userId);
+		if (!registro) {
+			const subject = new Subject<ChatMessageResponse>();
+			const canal = this.supabaseService.client
+				.channel(`chat-conversa-${userId}`)
+				.on<MensagemChat>(
+					'postgres_changes',
+					{ event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `thread_user_id=eq.${userId}` },
+					(payload) => subject.next(mensagemDaLinha(payload.new as MensagemChat)),
+				)
+				.subscribe((status) => this.conectado.set(status === 'SUBSCRIBED'));
+			registro = { canal, subject };
+			this.canaisDeThread.set(userId, registro);
 		}
-		return this.threadSubjects.get(userId)!.asObservable();
+		return registro.subject.asObservable();
 	}
 
+	/** Alterações em qualquer conversa (lista do admin). */
 	atualizacoesDeThreadsAdmin(): Observable<ChatThreadResponse> {
-		return this.adminThreadsSubject.asObservable();
+		if (!this.canalAdmin) {
+			const subject = new Subject<ChatThreadResponse>();
+			const canal = this.supabaseService.client
+				.channel('chat-conversas-admin')
+				.on<ConversaChat>('postgres_changes', { event: '*', schema: 'public', table: 'chat_threads' }, (payload) => {
+					if (payload.new && 'user_id' in payload.new) {
+						subject.next(conversaDaLinha(payload.new as ConversaChat));
+					}
+				})
+				.subscribe();
+			this.canalAdmin = { canal, subject };
+		}
+		return this.canalAdmin.subject.asObservable();
 	}
 
-	enviarMensagem(userId: string, text: string): void {
-		this.executarQuandoConectado(() => {
-			this.client?.publish({
-				destination: `/app/chat.${userId}.send`,
-				body: JSON.stringify({ text }),
-			});
-		});
+	enviarMensagem(userId: string, text: string): Observable<ChatMessageResponse> {
+		return deSupabase(this.supabaseService.client.rpc('enviar_mensagem_chat', { p_thread_user_id: userId, p_texto: text })).pipe(
+			map((linha) => mensagemDaLinha(linha)),
+		);
 	}
 
 	getThreads(): Observable<ChatThreadResponse[]> {
-		return this.http.get<ChatThreadResponse[]>(`${this.baseUrl}/threads`);
+		return deSupabase(
+			this.supabaseService.client
+				.from('chat_threads')
+				.select('user_id, last_message, updated_at, admin_unread_count, user_unread_count, profiles(name)')
+				.order('updated_at', { ascending: false }),
+		).pipe(map((linhas) => (linhas as unknown as (ConversaChat & { profiles: { name: string } | null })[]).map(conversaDaLinha)));
 	}
 
 	getTotalUnreadCountAdmin(): Observable<{ total: number }> {
-		return this.http.get<{ total: number }>(`${this.baseUrl}/threads/unread-count`);
+		return deSupabase(this.supabaseService.client.from('chat_threads').select('admin_unread_count')).pipe(
+			map((linhas) => ({ total: linhas.reduce((soma, linha) => soma + linha.admin_unread_count, 0) })),
+		);
 	}
 
 	getMyUnreadCount(): Observable<{ count: number }> {
-		return this.http.get<{ count: number }>(`${this.baseUrl}/my-thread/unread-count`);
+		return from(
+			(async () => {
+				const usuario = (await this.supabaseService.client.auth.getSession()).data.session?.user;
+				if (!usuario) {
+					return { count: 0 };
+				}
+				const linha = dadosOuErro(
+					await this.supabaseService.client.from('chat_threads').select('user_unread_count').eq('user_id', usuario.id).maybeSingle(),
+				);
+				return { count: linha?.user_unread_count ?? 0 };
+			})(),
+		);
 	}
 
+	/** Página `page` (0 = mais recentes), entregue em ordem cronológica (antiga -> recente). */
 	getMessages(userId: string, page = 0, size = 50): Observable<ChatMessagePage> {
-		return this.http.get<ChatMessagePage>(`${this.baseUrl}/threads/${userId}/messages`, {
-			// O backend ja entrega a pagina em ordem cronologica (mais antiga ->
-			// mais recente); nao enviamos sort para nao conflitar com esse
-			// ordenamento aplicado no servidor.
-			params: { page, size },
-		});
+		return from(
+			this.supabaseService.client
+				.from('chat_messages')
+				.select('*', { count: 'exact' })
+				.eq('thread_user_id', userId)
+				.order('sent_at', { ascending: false })
+				.range(page * size, (page + 1) * size - 1),
+		).pipe(
+			map((resposta) => {
+				const linhas = dadosOuErro(resposta);
+				const total = resposta.count ?? linhas.length;
+				return {
+					content: linhas.map(mensagemDaLinha).reverse(),
+					totalElements: total,
+					totalPages: Math.ceil(total / size),
+					number: page,
+					size,
+				};
+			}),
+		);
 	}
 
+	/** Zera as não lidas do lado de quem lê. Sem conversa ainda, não há o que marcar. */
 	marcarComoLida(userId: string, as: 'user' | 'admin'): Observable<void> {
-		return this.http.put<void>(`${this.baseUrl}/threads/${userId}/read`, null, { params: { as } });
+		return from(
+			(async () => {
+				const { error } = await this.supabaseService.client.rpc('marcar_chat_lido', { p_thread_user_id: userId, p_como: as });
+				if (error && error.code !== 'P0002') {
+					throw error;
+				}
+			})(),
+		);
 	}
 }

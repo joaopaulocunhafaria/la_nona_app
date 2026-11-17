@@ -14,10 +14,17 @@ export function deSupabase<T>(consulta: PromiseLike<{ data: T | null; error: Pos
 	);
 }
 
+type RespostaSupabase = { data: unknown; error: PostgrestError | Error | null };
+
+/** Tipo de `data` no caso de sucesso (as respostas do PostgREST são uniões sucesso | falha). */
+type DadosDe<R extends RespostaSupabase> = [Extract<R, { error: null }>] extends [never]
+	? NonNullable<R['data']>
+	: Extract<R, { error: null }>['data'];
+
 /** Lança o `error` de uma resposta do Supabase e devolve `data` (para fluxos async/await). */
-export function dadosOuErro<T>(resposta: { data: T | null; error: PostgrestError | Error | null }): T {
+export function dadosOuErro<R extends RespostaSupabase>(resposta: R): DadosDe<R> {
 	if (resposta.error) throw resposta.error;
-	return resposta.data as T;
+	return resposta.data as DadosDe<R>;
 }
 
 /** Código do erro do Postgres/PostgREST (`23505` = valor duplicado, `23503` = registro em uso…). */

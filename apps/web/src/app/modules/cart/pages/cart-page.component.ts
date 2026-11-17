@@ -1,5 +1,6 @@
 import { Component, OnInit, Signal, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { switchMap } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 import { ChatService } from '../../../services/chat.service';
 import { NotificacoesService } from '../../../services/notificacoes.service';
@@ -78,18 +79,18 @@ export class CartPageComponent implements OnInit {
 		}
 
 		// Envia o resumo do pedido na propria thread de suporte do cliente; o admin
-		// recebe essa mensagem no chat (mesmo canal usado pelo atendimento).
-		this.chatService.conectar();
-		this.chatService.enviarMensagem(usuario.id, this.montarMensagemPedido());
+		// recebe essa mensagem no chat. O carrinho so e' limpo depois que a mensagem foi gravada.
 		this.mostrarConfirmacao.set(false);
-
-		this.cartService.limpar().subscribe({
-			next: () => {
-				this.notificacoesService.sucesso('Pedido enviado! Acompanhe pelo chat.');
-				this.router.navigate(['/chat']);
-			},
-			error: (erro) => this.notificacoesService.erro(erro?.message ?? 'Não foi possível finalizar o pedido.'),
-		});
+		this.chatService
+			.enviarMensagem(usuario.id, this.montarMensagemPedido())
+			.pipe(switchMap(() => this.cartService.limpar()))
+			.subscribe({
+				next: () => {
+					this.notificacoesService.sucesso('Pedido enviado! Acompanhe pelo chat.');
+					this.router.navigate(['/chat']);
+				},
+				error: (erro) => this.notificacoesService.erro(mensagemErro(erro, 'Não foi possível finalizar o pedido.')),
+			});
 	}
 
 	private montarMensagemPedido(): string {
