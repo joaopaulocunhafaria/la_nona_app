@@ -93,7 +93,8 @@ test.describe('Cardápio (leitura pública)', () => {
 		await expect(card.getByRole('button', { name: 'Adicionar ao carrinho' })).toBeVisible();
 
 		await card.click();
-		await expect(page).toHaveURL(new RegExp(`/menu/${item.id}$`));
+		await expect(page.getByRole('heading', { name: item.name })).toBeVisible();
+		await expect(card).toHaveCount(0);
 		await expect(favoritar).toBeVisible();
 		await expect(adicionar).toBeVisible();
 	});
