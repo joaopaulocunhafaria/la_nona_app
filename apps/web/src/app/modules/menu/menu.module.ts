@@ -13,13 +13,14 @@ import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 
 import { SharedModule } from '../../utils/shared.module';
+import { ImageViewerComponent } from './components/image-viewer.component';
 import { MenuDetailComponent } from './pages/menu-detail.component';
 import { MenuFormComponent } from './pages/menu-form.component';
 import { MenuListComponent } from './pages/menu-list.component';
 import { MenuRoutingModule } from './menu-routing.module';
 
 @NgModule({
-	declarations: [MenuListComponent, MenuDetailComponent, MenuFormComponent],
+	declarations: [MenuListComponent, MenuDetailComponent, MenuFormComponent, ImageViewerComponent],
 	imports: [
 		CommonModule,
 		MenuRoutingModule,

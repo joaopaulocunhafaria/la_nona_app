@@ -1,0 +1,44 @@
+<dialog
+	#dialogo
+	class="visualizador-imagens"
+	aria-label="Visualização da imagem"
+	(close)="fechado.emit()"
+	(click)="fecharAoClicarFora($event)"
+	(keydown.arrowLeft)="anterior()"
+	(keydown.arrowRight)="proxima()"
+>
+	<div
+		class="area-arraste"
+		data-testid="visualizador-area"
+		(pointerdown)="iniciarArraste($event)"
+		(pointermove)="arrastar($event)"
+		(pointerup)="finalizarArraste($event)"
+		(pointercancel)="cancelarArraste()"
+	>
+		<div class="trilho" [class.arrastando]="arrastando()" [style.transform]="transformacao()">
+			@for (imagem of imagens(); track $index) {
+				<div class="quadro" [attr.aria-hidden]="$index !== indice()">
+					<img [src]="imagem" [alt]="descricao()" draggable="false" />
+				</div>
+			}
+		</div>
+	</div>
+
+	<button
+		type="button"
+		class="absolute top-2 right-2 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white"
+		aria-label="Fechar imagem"
+		(click)="fechar()"
+	>
+		<i class="pi pi-times text-xl"></i>
+	</button>
+
+	@if (imagens().length > 1) {
+		<span
+			class="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-sm text-white"
+			aria-live="polite"
+		>
+			{{ indice() + 1 }} / {{ imagens().length }}
+		</span>
+	}
+</dialog>

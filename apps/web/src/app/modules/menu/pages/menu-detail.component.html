@@ -1,5 +1,5 @@
 <app-page-header titulo="Detalhes do Item">
-	@if (item()) {
+	@if (item() && isAuthenticated()) {
 		<button
 			type="button"
 			class="-mr-2 flex h-10 w-10 flex-shrink-0 items-center justify-center text-2xl"
@@ -21,18 +21,35 @@
 		@if (imagens().length > 0) {
 			<p-galleria
 				[value]="imagens()"
+				[(activeIndex)]="imagemAtiva"
 				[showThumbnails]="imagens().length > 1"
 				[showIndicators]="imagens().length > 1"
 				[circular]="true"
 				[containerStyle]="{ 'max-width': '100%' }"
 			>
 				<ng-template pTemplate="item" let-imagem>
-					<img [src]="imagem" class="h-80 w-full object-cover" alt="Imagem do item" />
+					<button
+						type="button"
+						class="block h-80 w-full cursor-zoom-in"
+						style="background-color: var(--surface-soft-green)"
+						aria-label="Ver imagem em tela cheia"
+						(click)="visualizadorAberto.set(true)"
+					>
+						<img [src]="imagem" class="h-full w-full object-contain" [alt]="item()!.name" />
+					</button>
 				</ng-template>
 				<ng-template pTemplate="thumbnail" let-imagem>
-					<img [src]="imagem" class="h-16 w-16 object-cover" alt="Miniatura" />
+					<img [src]="imagem" class="h-16 w-16 object-contain" alt="Miniatura" />
 				</ng-template>
 			</p-galleria>
+			@if (visualizadorAberto()) {
+				<app-image-viewer
+					[imagens]="imagens()"
+					[indiceInicial]="imagemAtiva()"
+					[descricao]="item()!.name"
+					(fechado)="visualizadorAberto.set(false)"
+				></app-image-viewer>
+			}
 		} @else {
 			<div class="flex h-64 w-full items-center justify-center" style="background-color: var(--surface-soft-green)">
 				<i class="pi pi-image text-5xl" style="color: var(--secondary-light)"></i>
@@ -58,7 +75,7 @@
 		</div>
 	</div>
 
-	@if (podePedir()) {
+	@if (podePedir() && isAuthenticated()) {
 		<div class="fixed right-0 bottom-0 left-0 border-t bg-white p-4">
 			<button
 				pButton

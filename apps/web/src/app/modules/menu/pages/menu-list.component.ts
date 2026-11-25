@@ -43,6 +43,7 @@ export class MenuListComponent implements OnInit {
 	});
 
 	readonly isAdmin: Signal<boolean>;
+	readonly isAuthenticated: Signal<boolean>;
 
 	constructor(
 		private readonly authService: AuthService,
@@ -56,6 +57,7 @@ export class MenuListComponent implements OnInit {
 		private readonly telemetryService: TelemetryService,
 	) {
 		this.isAdmin = this.authService.isAdmin;
+		this.isAuthenticated = this.authService.isAuthenticated;
 	}
 
 	ngOnInit(): void {

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, Signal, computed, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AuthPromptService } from '../../../services/auth-prompt.service';
 import { AuthService } from '../../../services/auth.service';
@@ -18,6 +18,13 @@ import { MenuItemService } from '../_services/menu-item.service';
 export class MenuDetailComponent implements OnInit {
 	readonly item = signal<MenuItem | null>(null);
 	readonly carregando = signal(true);
+	readonly imagemAtiva = signal(0);
+	readonly visualizadorAberto = signal(false);
+	readonly isAuthenticated: Signal<boolean>;
+
+	readonly imagens = computed<string[]>(() =>
+		[...(this.item()?.images ?? [])].sort((a, b) => a.position - b.position).map((image) => image.url),
+	);
 
 	constructor(
 		private readonly route: ActivatedRoute,
@@ -28,7 +35,9 @@ export class MenuDetailComponent implements OnInit {
 		private readonly cartService: CartService,
 		private readonly notificacoesService: NotificacoesService,
 		private readonly telemetryService: TelemetryService,
-	) {}
+	) {
+		this.isAuthenticated = this.authService.isAuthenticated;
+	}
 
 	ngOnInit(): void {
 		const id = this.route.snapshot.paramMap.get('id')!;
@@ -84,13 +93,5 @@ export class MenuDetailComponent implements OnInit {
 	podePedir(): boolean {
 		const item = this.item();
 		return !!item && podePedir(item.status);
-	}
-
-	imagens(): string[] {
-		return (
-			this.item()
-				?.images.sort((a, b) => a.position - b.position)
-				.map((image) => image.url) ?? []
-		);
 	}
 }
